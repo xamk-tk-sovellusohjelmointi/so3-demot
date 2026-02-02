@@ -53,7 +53,7 @@ app.post(
 
             await prisma.kuva.create({
                 data : {
-                    teksti : req.body.teksti || "Nimetön kuva",
+                    teksti : req.body.description || "Nimetön kuva",
                     tiedosto : tiedostonimi
                 }
             });

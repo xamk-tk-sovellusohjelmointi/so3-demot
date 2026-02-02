@@ -7,9 +7,17 @@
 
         <% kuvat.forEach((kuva) => { %>
 
-            <h4><%=kuva.teksti%></h4>
+            <div class="card">
+                
 
-            <img src="/img/<%=kuva.tiedosto%>" alt="<%=kuva.tiedosto%>">
+                <img class="card-img-top" src="/img/<%=kuva.tiedosto%>" alt="<%=kuva.tiedosto%>">
+                <div class="card-body">
+                    <p class="card-title"><%=kuva.teksti%></p>
+                    <p class="card-text">Ladattu: <%=kuva.aika.toLocaleString()%></p>
+                </div>
+                
+            </div>
+            
 
         <%});%>
 
@@ -19,7 +27,7 @@
 
     <% } %>
 
-    <a href="/api/upload">Lisää kuvia</a>
+    <a type="button" class="btn btn-primary" href="/api/upload">Lisää kuvia</a>
 
 
 
