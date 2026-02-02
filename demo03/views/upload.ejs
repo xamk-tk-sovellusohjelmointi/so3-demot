@@ -1,7 +1,13 @@
 <%- include("./includes/header"); %>
 
     <h1 class="display-1">Demo 3: Tiedostojen upload</h1>
-    <h2 class="display-2">Kuvagalleria</h2>
+    <h2 class="display-2">Lisää uusi kuva galleriaan</h2>
+
+    <% if (Boolean(virhe)) { %>
+
+        <div class="virhe"><%=virhe%></div>
+
+    <% } %>
 
     <form action="/api/upload" method="post" enctype="multipart/form-data">
         <div class="mb-3">
@@ -10,8 +16,8 @@
             <div id="fileHelp" class="form-text">Lataa vain .jpg ja .jpeg kuvia</div>
         </div>
         <div class="mb-3">
-            <label for="description" class="form-label">Anna kuvaus...</label>
-            <input type="text" name="description" id="description" class="form-control">
+            <label for="description" class="form-label">Kuvateksti</label>
+            <input type="text" name="description" id="description" class="form-control" value="<%=teksti%>">
         </div>
         <button type="submit" class="btn btn-primary">Lähetä</button>
         <a type="button" href="/" class="btn btn-secondary">Palaa etusivulle</a>
