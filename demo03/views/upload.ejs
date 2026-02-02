@@ -1,0 +1,22 @@
+<%- include("./includes/header"); %>
+
+    <h1 class="display-1">Demo 3: Tiedostojen upload</h1>
+    <h2 class="display-2">Kuvagalleria</h2>
+
+    <form action="/api/upload" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="file" class="form-label">Lataa tiedosto koneeltasi...</label>
+            <input type="file" name="file" id="file" class="form-control" aria-describedby="fileHelp">
+            <div id="fileHelp" class="form-text">Lataa vain .jpg ja .jpeg kuvia</div>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Anna kuvaus...</label>
+            <input type="text" name="description" id="description" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">Lähetä</button>
+        <a type="button" href="/" class="btn btn-secondary">Palaa etusivulle</a>
+    </form>
+
+
+
+<%- include("./includes/header"); %>

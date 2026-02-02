@@ -1,0 +1,19 @@
+.display-1, .display-2 {
+    margin: 0;
+    font-size: 24pt;
+}
+
+.display-2 {
+    font-size: 18pt;
+}
+
+.container {
+    margin-top: 30px;
+}
+
+form {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f4f4f4;
+    border-radius: 10px;
+}
