@@ -44,6 +44,7 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "esModuleInterop": true,
+    "noEmit": true,
 
     // Prisma
     "moduleResolution": "bundler",

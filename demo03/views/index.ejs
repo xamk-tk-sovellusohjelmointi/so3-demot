@@ -1,34 +1,28 @@
-<%- include("./includes/header"); %>
+<%- include('includes/header'); %>
 
-    <h1 class="display-1">Demo 3: Tiedostojen upload</h1>
     <h2 class="display-2">Kuvagalleria</h2>
+
+    <a href="/lataa" type="button" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Lisää uusi kuva</a>
 
     <% if (kuvat.length > 0) { %>
 
         <% kuvat.forEach((kuva) => { %>
-
+            
             <div class="card">
-                
-
                 <img class="card-img-top" src="/img/<%=kuva.tiedosto%>" alt="<%=kuva.tiedosto%>">
                 <div class="card-body">
                     <p class="card-title"><%=kuva.teksti%></p>
                     <p class="card-text">Ladattu: <%=kuva.aika.toLocaleString()%></p>
                 </div>
-                
             </div>
             
 
-        <%});%>
+        <% }); %>
 
     <% } else { %>
 
-        <p>Ei kuvia.</p>
+        <p>Ei kuvia</p>
 
     <% } %>
 
-    <a type="button" class="btn btn-primary" href="/upload">Lisää kuvia</a>
-
-
-
-<%- include("./includes/header"); %>
+<%- include('includes/footer'); %>

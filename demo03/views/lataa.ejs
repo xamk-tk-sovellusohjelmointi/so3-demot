@@ -1,0 +1,25 @@
+<%- include("./includes/header"); %>
+
+    <h2 class="display-2">Lisää uusi kuva galleriaan</h2>
+
+    <% if (Boolean(virhe)) { %>
+
+        <div class="alert alert-danger" role="alert"><%=virhe%></div>
+
+    <% } %>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="tiedosto" class="form-label">Lataa tiedosto koneeltasi...</label>
+            <input type="file" name="tiedosto" id="tiedosto" class="form-control" aria-describedby="tiedostoApu">
+            <div id="tiedostoApu" class="form-text">Lataa vain .jpg ja .jpeg kuvia</div>
+        </div>
+        <div class="mb-3">
+            <label for="teksti" class="form-label">Kuvateksti</label>
+            <input type="text" name="teksti" id="teksti" class="form-control" value="<%=teksti%>">
+        </div>
+        <button type="submit" class="btn btn-primary">Lähetä</button>
+        <a type="button" href="/" class="btn btn-secondary">Palaa etusivulle</a>
+    </form>
+
+<%- include("./includes/footer"); %>
