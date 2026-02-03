@@ -8,11 +8,11 @@
 
     <% } %>
 
-    <form action="/upload" method="post" enctype="multipart/form-data">
+    <form action="/lataa" method="post" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="tiedosto" class="form-label">Lataa tiedosto koneeltasi...</label>
             <input type="file" name="tiedosto" id="tiedosto" class="form-control" aria-describedby="tiedostoApu">
-            <div id="tiedostoApu" class="form-text">Lataa vain .jpg ja .jpeg kuvia</div>
+            <div id="tiedostoApu" class="form-text">Lataa vain jpg/jpeg/gif -kuvia</div>
         </div>
         <div class="mb-3">
             <label for="teksti" class="form-label">Kuvateksti</label>
