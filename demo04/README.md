@@ -1,12 +1,24 @@
 # Demo 4: React Native -perusteet
 
+## Oppimistavoitteet
+
+Tämän demon jälkeen opiskelija osaa:
+- React Native ja Expo -perusteet
+- alustaa uuden Expo-projektin TypeScript-pohjalla
+- käynnistää Expo-kehityspalvelimen ja avata sovelluksen Expo Go -sovelluksessa
+- tunnistaa React Native -ydinkomponentit ja niiden erot web-Reactin HTML-elementteihin
+- käyttää `useRef`- ja `useState`-hookeja React Native -sovelluksessa
+- tyylitellä komponentteja `StyleSheet.create()`-metodilla
+
+---
+
 ## 1. React Native ja Expo
 
 ### Mikä on React Native?
 
 React Native on Metan kehittämä avoimen lähdekoodin sovelluskehys mobiilisovellusten rakentamiseen. Sen avulla voidaan kirjoittaa yksi JavaScript- tai TypeScript-koodipohja, josta tuotetaan natiivi mobiilisovellus sekä Androidille että iOS:lle.
 
-Tavallisessa web-kehityksessä React renderöi HTML-elementtejä selaimeen. React Native toimii samalla periaatteella, mutta sen sijaan, että se tuottaisi HTML:ää, se muuntaa React-komponentit suoraan mobiilialustan omiksi, natiiveiksi käyttöliittymäelementeiksi. Android-sovelluksessa esimerkiksi `<View>`-komponentti muuttuu Android-alustalle natiiviksi `ViewGroup`-elementiksi. Tästä johtuu sanan "Native" käyttö nimessä, sillä sovellus ei pyöri selainsäilössä vaan natiivina sovelluksena laitteella.
+Tavallisessa web-kehityksessä React renderöi HTML-elementtejä selaimeen. React Native toimii samalla periaatteella, mutta sen sijaan, että se tuottaisi HTML:ää, se muuntaa React-komponentit suoraan mobiilialustan omiksi, natiiveiksi käyttöliittymäelementeiksi. Android-sovelluksessa esimerkiksi `<View>`-komponentti muuttuu Android-alustalle natiiviksi `ViewGroup`-elementiksi. Tästä johtuu sanan "Native" käyttö nimessä, sillä sovellus ei pyöri selaimessa vaan natiivina sovelluksena laitteella.
 
 ### Mikä on Expo?
 
@@ -16,54 +28,146 @@ Expo abstraktoi nämä laitteisto- ja ympäristöasetukset kehittäjältä piilo
 
 Expo on myös [virallinen React Native -dokumentaation](https://reactnative.dev/docs/environment-setup) suosittelema aloitustapa uusille kehittäjille.
 
----
+### Esivaatimukset
 
-## 2. Esivaatimukset
-
-### VS Code -laajennukset
+**VS Code -laajennukset**
 
 Visual Studio Code ei tunnista React Native -syntaksia oletuksena yhtä hyvin kuin web-React-koodia. Seuraavat laajennukset parantavat kehityskokemusta:
 
-- **React Native Tools** (Microsoft) on Microsoftin virallinen laajennus, joka tarjoaa syntaksikorostuksen, IntelliSensen ja debuggaustyökalut React Native -projekteille. Asenna se VS Coden Extensions-välilehdeltä hakemalla "React Native Tools".
+- **React Native Tools** (Microsoft) on Microsoftin virallinen laajennus, joka tarjoaa syntaksikorostuksen, IntelliSensen ja debuggaustyökalut React Native -projekteille. Laajennus asennetaan VS Coden Extensions-välilehdeltä hakemalla "React Native Tools".
 - **Expo Tools** on valinnainen laajennus, joka tarjoaa Expo-kohtaisia ominaisuuksia.
 
-### Expo Go -sovellus
+**Expo Go -sovellus**
 
-Asenna **Expo Go** laitteellesi sovelluskaupasta. Sovellus löytyy hakusanalla "Expo Go".
+Puhelimeen asennetaan **Expo Go** sovelluskaupasta. Sovellus löytyy hakusanalla "Expo Go".
 
-Kehityksen aikana Expo-kehityspalvelin ja mobiililaite kommunikoivat saman lähiverkon kautta. Varmista, että sekä tietokone että mobiililaite ovat yhteydessä **samaan Wi-Fi-verkkoon**, esimerkiksi kotiverkkoon. Vaihtoehtoisesti voit käyttää mobiililaitteen **mobiilitukiasemaa** (hotspot) aktivoimalla hotspot laitteellasi ja yhdistämällä tietokoneen siihen.
+Kehityksen aikana Expo-kehityspalvelin ja mobiililaite kommunikoivat saman lähiverkon kautta. Sekä tietokoneen että mobiililaitteen on oltava yhteydessä **samaan Wi-Fi-verkkoon**, esimerkiksi kotiverkkoon. Vaihtoehtoisesti voidaan käyttää mobiililaitteen **mobiilitukiasemaa** (hotspot) aktivoimalla hotspot laitteella ja yhdistämällä tietokone siihen.
+
+### React Native -komponentit ja ero web-Reactiin
+
+Sovellusohjelmointi 1 -opintojaksolla toteutettiin selainpohjaisia React-sovelluksia, jotka käyttivät HTML-elementtejä (`div`, `p`, `button` jne.). React Native ei käytä HTML-elementtejä, vaan tarjoaa omia komponenttejaan, jotka vastaavat natiiveja mobiilielementtejä.
+
+Seuraava taulukko kuvaa yleisimmät HTML-elementtien React Native -vastineet:
+
+| Web (HTML) | React Native | Selitys |
+|------------|--------------|---------|
+| `<div>` | `<View>` | Yleiskäyttöinen säilökomponentti, jolla ryhmitellään muita komponentteja |
+| `<p>`, `<h1>`, `<span>` | `<Text>` | Kaikki teksti on pakattava `<Text>`-komponentin sisään |
+| `<img>` | `<Image>` | Kuvien näyttäminen |
+| `<input type="text">` | `<TextInput>` | Tekstinsyöttökenttä |
+| `<button>` | `<Button>` tai `<Pressable>` | Painettava alue painikkeille ja klikattaville elementeille |
+| `<ul>` + `<li>` | `<FlatList>` | Pitkien listojen tehokas renderöinti |
+| `<div style="overflow: scroll">` | `<ScrollView>` | Vieritettävä näkymäsäilö |
+
+Tärkein ero web-Reactiin on se, että **kaikki teksti on kirjoitettava `<Text>`-komponentin sisään**. React Native antaa virheen, jos teksti on suoraan `<View>`-komponentin lapsena ilman `<Text>`-komponenttia.
+
+### StyleSheet ja tyylittely
+
+React Nativessa ei käytetä CSS:ää. Tyylittely tapahtuu JavaScript-objekteilla, joiden syntaksi muistuttaa CSS:ää, mutta käyttää **camelCase**-muotoa. Esimerkiksi CSS:n `background-color` on React Nativessa `backgroundColor` ja `font-size` on `fontSize`.
+
+Tyylit luodaan `StyleSheet.create()`-metodilla:
+
+```typescript
+import { StyleSheet } from 'react-native';
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    otsikko: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+});
+```
+
+`StyleSheet.create()` ei ole pakollinen, sillä tyylit voisi kirjoittaa suoraan komponentille `style={{ fontSize: 24 }}`, mutta `StyleSheet.create()` optimoi tyylit suorituskyvyn kannalta ja antaa paremman TypeScript-tuen. Paremmaksi käytännöksi katsotaan `StyleSheet.create()`-metodin käyttö.
+
+React Native käyttää **Flexboxia** komponenttien sijoitteluun. Flexbox toimii hieman eri oletusarvoilla kuin web-CSS:ssä, sillä React Nativen `flexDirection` on oletuksena `column` (pystysuuntainen) toisin kuin web-CSS:ssä, jossa oletus on `row` (vaakasuuntainen).
+
+### App.tsx-pääkomponentti
+
+Alla on esimerkki yksinkertaisesta `App.tsx`-komponentista, joka näyttää otsikon:
+
+```tsx
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, Text, View } from 'react-native';
+
+export default function App() {
+    return (
+        <View style={styles.container}>
+            <Text style={styles.otsikko}>Heippa maailma!</Text>
+            <StatusBar style="auto" />
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    otsikko: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+});
+```
+
+Komponentin rakenne on tuttu web-Reactista:
+
+- **`import`-lauseet**: tuodaan tarvittavat komponentit ja kirjastot. React Native -komponentit tuodaan `react-native`-paketista ja Expo-kohtaiset komponentit `expo-*`-paketeista.
+- **Komponenttifunktio**: `App` on funktiokomponentti, joka palauttaa JSX-elementin.
+- **`return`-lause**: palauttaa komponentin näkymän JSX-muodossa. Juuritasolla on aina yksi komponentti, tässä `<View>`.
+- **`export default`**: vie komponentin muiden tiedostojen käytettäväksi. Expo odottaa `App.tsx`-tiedoston vievän pääkomponentin `export default` -lauseella.
+- **`StatusBar`**: Expon komponentti, joka hallinnoi mobiililaitteen tilapalkin ulkoasua. Tilapalkki on näytön yläreuna, jossa näkyy kellonaika, akun tila ja verkon signaali.
+
+### Demosovellus
+
+Tässä demossa rakennetaan yksinkertainen tervehdyssovellus, jossa käyttäjä syöttää nimensä tekstikenttään ja saa personoidun tervehdyksen painamalla nappia. Sovellus havainnollistaa `useRef`- ja `useState`-hookien käyttöä React Nativessa sekä ehdollista renderöintiä.
+
+Aiemmista demoista poiketen tämä demo ei sisällä palvelinta. Kyseessä on puhdas mobiilisovellus, jonka kaikki logiikka pyörii paikallisesti laitteella.
 
 ---
 
-## 3. Projektin luominen
+## 2. Demosovelluksen rakentuminen vaihe vaiheelta
 
 ### Vaihe 1: Projektin kansion luominen
 
-Avaa VS Codessa uusi terminaali. Navigoi haluamaasi hakemistoon ja luo uusi kansio projektia varten:
+Avataan VS Codessa uusi terminaali. Navigoidaan haluamaan hakemistoon ja luodaan uusi kansio projektia varten:
 
 ```bash
 mkdir demo04
 cd demo04
 ```
 
-Voit myös luoda kansion resurssinhallinnan kautta ja avata sen VS Codessa (**File → Open Folder**). Tällöin VS Coden terminaali avautuu automaattisesti projektikansiossa.
+Kansion voi myös luoda resurssinhallinnan kautta ja avata sen VS Codessa (**File → Open Folder**). Tällöin VS Coden terminaali avautuu automaattisesti projektikansiossa.
 
 ### Vaihe 2: Expo-projektin alustaminen
 
-Luo uusi Expo-projekti TypeScript-pohjalla suorittamalla komento:
+Luodaan uusi Expo-projekti TypeScript-pohjalla suorittamalla komento:
 
 ```bash
 npx create-expo-app@latest . --template blank-typescript@sdk-54
 ```
 
-> **Huom!** Expo SDK 55 on siirtymävaiheessa, eikä Expo Go -sovelluksen julkaistu versio tue sitä vielä täysin. Käytä toistaiseksi `@sdk-54`-määrettä, jolla projekti alustetaan Expo SDK 54 -versioon. SDK 54 on vakaa versio, joka toimii Expo Go:n kanssa ongelmitta. Tämä on myös [Expon virallisen dokumentaation](https://docs.expo.dev/get-started/create-a-project/) suositus fyysisellä laitteella testaavalle.
+> **Huomio:** Expo SDK 55 on siirtymävaiheessa, eikä Expo Go -sovelluksen julkaistu versio tue sitä vielä täysin. Toistaiseksi käytetään `@sdk-54`-määrettä, jolla projekti alustetaan Expo SDK 54 -versioon. SDK 54 on vakaa versio, joka toimii Expo Go:n kanssa ongelmitta. Tämä on myös [Expon virallisen dokumentaation](https://docs.expo.dev/get-started/create-a-project/) suositus fyysisellä laitteella testaavalle.
 
 Komennon osat:
 
-- `npx`: suorittaa npm-paketin asentamatta sitä pysyvästi. `npx` hakee uusimman version `create-expo-app`-työkalusta ja ajaa sen.
-- `create-expo-app@latest`: Expon virallinen projektin luontityökalu, jossa `@latest` varmistaa uusimman version käytön.
-- `.`: piste tarkoittaa nykyistä kansiota, joten projekti luodaan nykyiseen kansioon uuden alikansion sijaan.
-- `--template blank-typescript@sdk-54`: käyttää valmista "tyhjää" TypeScript-pohjaa SDK 54 -versiolla. Tämä on yksinkertaisin mahdollinen Expo-projekti, joka sisältää vain välttämättömät tiedostot ilman ylimääräisiä esimerkkejä tai navigaatiota.
+| Osa | Selitys |
+|-----|---------|
+| `npx` | Suorittaa npm-paketin asentamatta sitä pysyvästi. Hakee uusimman version `create-expo-app`-työkalusta ja ajaa sen. |
+| `create-expo-app@latest` | Expon virallinen projektin luontityökalu, jossa `@latest` varmistaa uusimman version käytön. |
+| `.` | Piste tarkoittaa nykyistä kansiota, joten projekti luodaan nykyiseen kansioon uuden alikansion sijaan. |
+| `--template blank-typescript@sdk-54` | Käyttää valmista "tyhjää" TypeScript-pohjaa SDK 54 -versiolla. Yksinkertaisin mahdollinen Expo-projekti ilman ylimääräisiä esimerkkejä tai navigaatiota. |
 
 Komento asentaa projektin riippuvuudet automaattisesti. Asennus voi kestää muutaman minuutin verkkoyhteyden nopeudesta riippuen.
 
@@ -84,16 +188,18 @@ demo04/
 
 Keskeisimmät tiedostot:
 
-- **`App.tsx`**: sovelluksen **pääkomponentti**, johon kirjoitetaan sovelluksen ensimmäinen näkymä. Tiedostopääte `.tsx` tarkoittaa TypeScript-tiedostoa, joka sisältää JSX-syntaksia.
-- **`app.json`**: Expon konfiguraatiotiedosto, joka sisältää sovelluksen nimen, ikonin, väriteemat ja muut sovellustason asetukset.
-- **`package.json`**: Node.js-projektin kuvaustiedosto, joka listaa projektin riippuvuudet (`react`, `react-native`, `expo` jne.) ja käynnistyskomennot.
-- **`tsconfig.json`**: TypeScript-konfiguraatio, jonka Expo asettaa automaattisesti optimaalisille asetuksille React Native -kehitystä varten.
-- **`assets/`**: sovelluksen staattiset resurssit, kuten ikonit ja latauskuva (splash screen).
-- **`node_modules/`**: npm:n asentamat riippuvuudet. Tätä kansiota ei koskaan muokata käsin eikä lisätä versionhallintaan.
+| Tiedosto | Selitys |
+|----------|---------|
+| `App.tsx` | Sovelluksen **pääkomponentti**, johon kirjoitetaan sovelluksen ensimmäinen näkymä. Tiedostopääte `.tsx` tarkoittaa TypeScript-tiedostoa, joka sisältää JSX-syntaksia. |
+| `app.json` | Expon konfiguraatiotiedosto, joka sisältää sovelluksen nimen, ikonin, väriteemat ja muut sovellustason asetukset. |
+| `package.json` | Node.js-projektin kuvaustiedosto, joka listaa projektin riippuvuudet ja käynnistyskomennot. |
+| `tsconfig.json` | TypeScript-konfiguraatio, jonka Expo asettaa automaattisesti optimaalisille asetuksille React Native -kehitystä varten. |
+| `assets/` | Sovelluksen staattiset resurssit, kuten ikonit ja latauskuva (splash screen). |
+| `node_modules/` | npm:n asentamat riippuvuudet. Tätä kansiota ei koskaan muokata käsin eikä lisätä versionhallintaan. |
 
 ### Vaihe 4: Kehityspalvelimen käynnistäminen
 
-Käynnistä Expo-kehityspalvelin komennolla:
+Käynnistetään Expo-kehityspalvelin komennolla:
 
 ```bash
 npx expo start
@@ -116,118 +222,22 @@ Terminaaliin ilmestyy Expo-kehityspalvelimen käyttöliittymä, jossa näkyy QR-
 
 ### Vaihe 5: Sovelluksen avaaminen Expo Go -sovelluksella
 
-QR-koodin skannaus riippuu käyttämästäsi alustasta:
+QR-koodin skannaus riippuu käytettävästä alustasta:
 
-- **Android**: avaa **Expo Go** -sovellus ja paina sovelluksen etusivulta **"Scan QR code"** -painiketta. Skannaa terminaaliin ilmestynyt QR-koodi.
-- **iOS**: avaa laitteen oma **Kamera**-sovellus ja osoita se terminaalin QR-koodiin. Kamera tunnistaa koodin automaattisesti ja tarjoaa linkin, joka avaa sovelluksen Expo Go:ssa.
+- **Android**: avataan **Expo Go** -sovellus ja painetaan sovelluksen etusivulta **"Scan QR code"** -painiketta. Skannataan terminaaliin ilmestynyt QR-koodi.
+- **iOS**: avataan laitteen oma **Kamera**-sovellus ja osoitetaan se terminaalin QR-koodiin. Kamera tunnistaa koodin automaattisesti ja tarjoaa linkin, joka avaa sovelluksen Expo Go:ssa.
 
 Expo Go lataa sovelluksen mobiililaitteelle verkon kautta. Ruudulla näkyy ensin Expon latauskuva, jonka jälkeen `App.tsx`-tiedostossa määritelty näkymä avautuu.
 
-Sovellus **latautuu automaattisesti uudelleen** aina, kun tallennat muutoksia lähdekoodiin. Tätä kutsutaan live reloadingiksi, eikä kehittäjän tarvitse käynnistää sovellusta käsin jokaisen muutoksen jälkeen.
+Sovellus **latautuu automaattisesti uudelleen** aina, kun muutoksia tallennetaan lähdekoodiin. Tätä kutsutaan **live reloadingiksi**, eikä kehittäjän tarvitse käynnistää sovellusta käsin jokaisen muutoksen jälkeen.
 
-Testaa live reloading muokkaamalla `App.tsx`-tiedostossa olevaa tekstiä ja tallentamalla tiedosto (`Ctrl + S`). Muutos näkyy puhelimen ruudulla muutamassa sekunnissa.
+Testataan live reloading muokkaamalla `App.tsx`-tiedostossa olevaa tekstiä ja tallentamalla tiedosto (`Ctrl + S`). Muutos näkyy puhelimen ruudulla muutamassa sekunnissa.
 
----
-
-## 4. React Native -komponentit
-
-### Ero web-Reactiin
-
-Sovellusohjelmointi 1 -opintojaksolla toteutettiin selainpohjaisia React-sovelluksia, jotka käyttivät HTML-elementtejä (`div`, `p`, `button` jne.). React Native ei käytä HTML-elementtejä, vaan sen sijaan React Native tarjoaa omia komponenttejaan, jotka vastaavat natiiveja mobiilielementtejä.
-
-Seuraava taulukko kuvaa yleisimmät HTML-elementtien React Native -vastineet:
-
-| Web (HTML) | React Native | Selitys |
-|------------|--------------|---------|
-| `<div>` | `<View>` | Yleiskäyttöinen säilökomponentti, jolla ryhmitellään muita komponentteja |
-| `<p>`, `<h1>`, `<span>` | `<Text>` | Kaikki teksti on pakattava `<Text>`-komponentin sisään |
-| `<img>` | `<Image>` | Kuvien näyttäminen |
-| `<input type="text">` | `<TextInput>` | Tekstinsyöttökenttä |
-| `<button>` | `<Button>` tai `<Pressable>` | Painettava alue painikkeille, linkeille ja klikattaville elementeille |
-| `<ul>` + `<li>` | `<FlatList>` | Pitkien listojen tehokas renderöinti |
-| `<div style="overflow: scroll">` | `<ScrollView>` | Vieritettävä näkymäsäilö |
-
-Tärkein ero web-Reactiin on se, että **kaikki teksti on kirjoitettava `<Text>`-komponentin sisään**. React Native antaa virheen, jos teksti on suoraan `<View>`-komponentin lapsena ilman `<Text>`-komponenttia.
-
-### StyleSheet ja tyylittely React Nativessa
-
-React Nativessa ei käytetä CSS:ää. Tyylittely tapahtuu JavaScript-objekteilla, joiden syntaksi muistuttaa CSS:ää, mutta käyttää **camelCase**-muotoa. Esimerkiksi CSS:n `background-color` on React Nativessa `backgroundColor` ja `font-size` on `fontSize`.
-
-Tyylit luodaan `StyleSheet.create()`-metodilla:
-
-```typescript
-import { StyleSheet } from 'react-native';
-
-const styles = StyleSheet.create({
-    säilö: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    otsikko: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#333',
-    },
-});
-```
-
-`StyleSheet.create()` ei ole pakollinen, sillä tyylit voisi kirjoittaa suoraan komponentille `style={{ fontSize: 24 }}`, mutta `StyleSheet.create()` optimoi tyylit suorituskyvyn kannalta ja antaa paremman TypeScript-tuen. Paremmaksi käytännöksi katsotaan `StyleSheet.create()`-metodin käyttö.
-
-React Native käyttää **Flexboxia** komponenttien sijoitteluun. Flexbox toimii hieman eri oletusarvoilla kuin web-CSS:ssä, sillä React Nativen `flexDirection` on oletuksena `column` (pystysuuntainen) toisin kuin web-CSS:ssä, jossa oletus on `row` (vaakasuuntainen).
-
-### App.tsx pääkomponentti
-
-Alla on esimerkki yksinkertaisesta `App.tsx`-komponentista, joka näyttää otsikon ja tekstikappaleen:
-
-```tsx
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-
-export default function App() {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.otsikko}>Heippa maailma!</Text>
-            <StatusBar style="auto" />
-        </View>
-    );
-}
-
-const styles = StyleSheet.create({
-    säilö: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    otsikko: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-});
-```
-
-Komponentin rakenne on tuttu web-Reactista:
-
-- **`import`-lauseet**: tuodaan tarvittavat komponentit ja kirjastot. React Native -komponentit tuodaan `react-native`-paketista ja Expo-kohtaiset komponentit `expo-*`-paketeista.
-- **Komponenttifunktio**: `App` on funktiokomponentti, joka palauttaa JSX-elementin.
-- **`return`-lause**: palauttaa komponentin näkymän JSX-muodossa. Juuritasolla on aina yksi komponentti, tässä `<View>`.
-- **`export default App`**: vie komponentin muiden tiedostojen käytettäväksi. Expo odottaa `App.tsx`-tiedoston vievän pääkomponentin `export default`-lauseella.
-- **`StatusBar`**: Expon komponentti, joka hallinnoi mobiililaitteen tilapalkin ulkoasua. Tilapalkki on näytön yläreuna, jossa näkyy kellonaika, akun tila ja verkon signaali.
-
----
-
-## 5. Sovelluksen ohjelmointi vaiheittain
-
-Tässä osiossa rakennetaan yksinkertainen tervehdyssovellus, jossa käyttäjä syöttää nimensä tekstikenttään ja saa personoidun tervehdyksen painamalla nappia. Sovellus havainnollistaa `useRef`- ja `useState`-hookien käyttöä React Nativessa sekä ehdollista renderöintiä.
-
-### Vaihe 1: react-native-safe-area-context -riippuvuuden asentaminen
+### Vaihe 6: react-native-safe-area-context -riippuvuuden asentaminen
 
 Sovellus käyttää `SafeAreaView`-komponenttia, joka varmistaa, että käyttöliittymä ei piirry mobiililaitteen kameran tai ilmoituspalkin päälle. Komponentti tulee erillisestä `react-native-safe-area-context` -paketista, joka asennetaan `npx expo install` -komennolla.
 
-Jos kehityspalvelin on käynnissä, sammuta se ensin `Ctrl + C`:llä, asenna paketti ja käynnistä palvelin uudelleen:
+Jos kehityspalvelin on käynnissä, sammutetaan se ensin `Ctrl + C`:llä, asennetaan paketti ja käynnistetään palvelin uudelleen:
 
 ```bash
 npx expo install react-native-safe-area-context
@@ -236,9 +246,9 @@ npx expo start
 
 `npx expo install` eroaa tavallisesta `npm install` -komennosta siten, että se valitsee automaattisesti projektin Expo SDK -version kanssa yhteensopivan pakettiversion.
 
-### Vaihe 2: Moduulien tuonti
+### Vaihe 7: Moduulien tuonti
 
-Korvaa `App.tsx`:n oletussisältö tuomalla tarvittavat moduulit:
+Korvataan `App.tsx`:n oletussisältö tuomalla tarvittavat moduulit:
 
 ```tsx
 import { StatusBar } from 'expo-status-bar';
@@ -247,11 +257,18 @@ import { Button, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 ```
 
-Tuonnit jakaantuvat kolmeen ryhmään: Expon omat paketit (`expo-status-bar`), Reactin hookit (`react`) sekä React Native -komponentit (`react-native`, `react-native-safe-area-context`).
+Tuonnit jakaantuvat kolmeen ryhmään:
 
-### Vaihe 3: Tilamuuttujat ja tekstikenttäviittaus
+| Ryhmä | Paketti | Tuodut moduulit |
+|-------|---------|-----------------|
+| Expo | `expo-status-bar` | `StatusBar` — laitteen tilapalkin hallinta |
+| React | `react` | `useRef` — viittaus komponenttiin, `useState` — tilamuuttuja |
+| React Native | `react-native` | `Button`, `StyleSheet`, `Text`, `TextInput` — ydinkomponentit |
+| React Native (lisäpaketti) | `react-native-safe-area-context` | `SafeAreaView` — turvallinen näkymäalue |
 
-Lisää komponentin sisään tilamuuttuja ja `useRef`-viittaus:
+### Vaihe 8: Tilamuuttujat ja tekstikenttäviittaus
+
+Lisätään komponentin sisään tilamuuttuja ja `useRef`-viittaus:
 
 ```tsx
 export default function App() {
@@ -260,11 +277,13 @@ export default function App() {
     const [tervehdys, setTervehdys] = useState<string>('');
 ```
 
-`useRef<TextInput>(null)` luo viittauksen, joka osoittaa myöhemmin `TextInput`-komponenttiin. Viittauksen avulla tekstikenttään pääsee käsiksi suoraan ilman tilamuuttujaa, mikä tarkoittaa, että jokainen näppäimenpainallus ei käynnistä komponentin uudelleenrenderöintiä. `useState<string>('')` puolestaan tallentaa tervehdysviestin, jonka muutos käynnistää renderöinnin ja päivittää näkymän.
+`useRef<TextInput>(null)` luo viittauksen, joka osoittaa myöhemmin `TextInput`-komponenttiin. Viittauksen avulla tekstikenttään päästään käsiksi suoraan ilman tilamuuttujaa, mikä tarkoittaa, että jokainen näppäimenpainallus ei käynnistä komponentin uudelleenrenderöintiä. `useState<string>('')` puolestaan tallentaa tervehdysviestin, jonka muutos käynnistää renderöinnin ja päivittää näkymän.
 
-### Vaihe 4: Tervehdysmetodi
+> **Huomio:** `useRef` ja `useState` toimivat React Nativessa täsmälleen samoin kuin web-Reactissa. Ne ovat Reactin omia hookeja, eivät React Nativen.
 
-Lisää `sanoHeippa`-funktio tilamuuttujien jälkeen:
+### Vaihe 9: Tervehdysmetodi
+
+Lisätään `sanoHeippa`-funktio tilamuuttujien jälkeen:
 
 ```tsx
     const sanoHeippa = () => {
@@ -274,11 +293,13 @@ Lisää `sanoHeippa`-funktio tilamuuttujien jälkeen:
     };
 ```
 
-Funktio lukee tekstikentän senhetkisen arvon `tekstikentta.current.value`-ominaisuudesta, muodostaa tervehdysmerkkijonon template literalilla ja asettaa sen tilamuuttujaan. Lopuksi se tyhjentää tekstikentän `clear()`-metodilla. `TextInput`-komponentin `.value`-ominaisuus ei kuulu TypeScriptin tyyppimäärittelyihin, joten siihen tarvitaan `as any` -tyyppimuunnos. `?.`-operaattori varmistaa, että koodia ei yritetä ajaa ennen kuin viittaus on kiinnittynyt komponenttiin.
+Funktio lukee tekstikentän senhetkisen arvon `tekstikentta.current.value`-ominaisuudesta, muodostaa tervehdysmerkkijonon **template literalilla** ja asettaa sen tilamuuttujaan. Lopuksi se tyhjentää tekstikentän `clear()`-metodilla.
 
-### Vaihe 5: Näkymän rakentaminen
+`TextInput`-komponentin `.value`-ominaisuus ei kuulu TypeScriptin tyyppimäärittelyihin, joten siihen tarvitaan `as any` -tyyppimuunnos. `?.`-operaattori (**optional chaining**) varmistaa, että koodia ei yritetä ajaa ennen kuin viittaus on kiinnittynyt komponenttiin. `??`-operaattori (**nullish coalescing**) palauttaa tyhjän merkkijonon, jos arvo on `null` tai `undefined`.
 
-Lisää `return`-lauseen sisältö:
+### Vaihe 10: Näkymän rakentaminen
+
+Lisätään `return`-lauseen sisältö:
 
 ```tsx
     return (
@@ -313,11 +334,16 @@ Lisää `return`-lauseen sisältö:
 }
 ```
 
-`SafeAreaView` toimii `View`-komponentin tapaan, mutta lisää automaattisesti tarvittavan ylätilan laitteen kameran ja ilmoituspalkin päälle. `ref={tekstikentta}` kiinnittää viittauksen `TextInput`-komponenttiin, jolloin `tekstikentta.current` viittaa kyseiseen komponenttiin muualla koodissa. `onChangeText` käynnistyy aina, kun käyttäjä kirjoittaa tekstikenttään, ja tallentaa arvon viittauksen kautta muistiin ilman tilamuuttujaa. `Boolean(tervehdys) && ...` on ehdollisen tulostuksen rakenne, joka renderöi `Text`-komponentin vain silloin, kun `tervehdys`-merkkijonossa on sisältöä.
+Näkymän keskeiset osat:
 
-### Vaihe 6: Tyylit
+- **`SafeAreaView`** toimii `View`-komponentin tapaan, mutta lisää automaattisesti tarvittavan ylätilan laitteen kameran ja ilmoituspalkin päälle.
+- **`ref={tekstikentta}`** kiinnittää viittauksen `TextInput`-komponenttiin, jolloin `tekstikentta.current` viittaa kyseiseen komponenttiin muualla koodissa.
+- **`onChangeText`** käynnistyy aina, kun käyttäjä kirjoittaa tekstikenttään, ja tallentaa arvon viittauksen kautta muistiin ilman tilamuuttujaa.
+- **`Boolean(tervehdys) && ...`** on **ehdollisen renderöinnin** rakenne, joka renderöi `Text`-komponentin vain silloin, kun `tervehdys`-merkkijonossa on sisältöä. Tyhjä merkkijono on JavaScriptissä falsy-arvo, joten `Boolean('')` palauttaa `false`.
 
-Lisää `StyleSheet`-määrittely komponentin alapuolelle:
+### Vaihe 11: Tyylit
+
+Lisätään `StyleSheet`-määrittely komponentin alapuolelle, `App`-funktion sulkevan aaltosulun jälkeen:
 
 ```tsx
 const styles = StyleSheet.create({
@@ -345,9 +371,22 @@ const styles = StyleSheet.create({
 
 `container`-tyyli asettaa `flex: 1`:n, jolloin `SafeAreaView` täyttää koko näytön. `padding: 10` lisää sisäisen välin kaikille reunoille, joten sisältö ei osu suoraan näytön laitaan. Muut tyylit lisäävät välejä tekstielementtien välille `marginTop`- ja `marginBottom`-ominaisuuksilla.
 
+### Projektin lopullinen rakenne
+
+```
+demo04/
+├── assets/                  # Ikonit ja splash screen
+├── node_modules/            # Asennetut riippuvuudet (ei versionhallintaan)
+├── App.tsx                  # Sovelluksen pääkomponentti (tervehdyssovellus)
+├── app.json                 # Expon konfiguraatio
+├── index.ts                 # Sovelluksen aloituspiste
+├── package.json             # Riippuvuudet ja käynnistyskomennot
+└── tsconfig.json            # TypeScript-konfiguraatio
+```
+
 ---
 
-## 6. Muistilista
+## 3. Muistilista
 
 ### React Native -ydinkomponentit
 
@@ -361,6 +400,7 @@ const styles = StyleSheet.create({
 | `<ScrollView>` | Vieritettävä säilö tilanteisiin, joissa sisältö voi ylittää näytön koon |
 | `<FlatList>` | Tehokas listarenderöinti suurille datajoukoille |
 | `<StatusBar>` | Hallinnoi mobiililaitteen tilapalkin ulkoasua (Expo) |
+| `<SafeAreaView>` | Turvallinen näkymäalue, joka huomioi kameran ja tilapalkin (erillinen paketti) |
 
 ### StyleSheet-ominaisuuksia
 
@@ -383,6 +423,7 @@ const styles = StyleSheet.create({
 | Komento | Selitys |
 |---------|---------|
 | `npx create-expo-app@latest . --template blank-typescript@sdk-54` | Luo uuden Expo SDK 54 + TypeScript -projektin nykyiseen kansioon |
+| `npx expo install <paketti>` | Asentaa paketin Expo SDK -yhteensopivalla versiolla |
 | `npx expo start` | Käynnistää Expo-kehityspalvelimen |
 | `a` (kehityspalvelimessa) | Avaa sovelluksen Android-emulaattorissa (vaatii Android Studion) |
 | `i` (kehityspalvelimessa) | Avaa sovelluksen iOS-simulaattorissa (vaatii Xcoden, macOS) |
@@ -395,13 +436,20 @@ const styles = StyleSheet.create({
 
 ## Sovelluksen käynnistys
 
-Jos kloonasit projektin valmiina tai haluat käynnistää sen uudelleen:
+Jos projekti kloonataan valmiina tai halutaan käynnistää se uudelleen:
+
+**1. Asennetaan riippuvuudet:**
 
 ```bash
 npm install
+```
+
+`npm install` asentaa `package.json`-tiedostossa listatut riippuvuudet `node_modules/`-kansioon. Tämä on tarpeen aina, kun projekti kloonataan tai `node_modules/`-kansio puuttuu, koska sitä ei lisätä versionhallintaan.
+
+**2. Käynnistetään kehityspalvelin:**
+
+```bash
 npx expo start
 ```
 
-`npm install` asentaa `package.json`-tiedostossa listatut riippuvuudet `node_modules/`-kansioon. Tämä on tarpeen aina, kun kloonat projektin tai `node_modules/`-kansio puuttuu, koska sitä ei lisätä versionhallintaan.
-
-`npx expo start` käynnistää kehityspalvelimen. Skannaa terminaaliin ilmestyvä QR-koodi Expo Go -sovelluksella (Android) tai laitteen Kamera-sovelluksella (iOS).
+`npx expo start` käynnistää kehityspalvelimen. Skannataan terminaaliin ilmestyvä QR-koodi Expo Go -sovelluksella (Android) tai laitteen Kamera-sovelluksella (iOS).
