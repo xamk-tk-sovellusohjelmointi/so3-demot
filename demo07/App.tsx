@@ -28,7 +28,15 @@ export default function App() {
     return (
         <SQLiteProvider databaseName="ostokset.db" onInit={alustaKanta}>
             <PaperProvider>
+
+                <Appbar.Header>
+                    <Appbar.Content title="Demo 7: SQLite" />
+                </Appbar.Header>
+
                 <Ostoslista />
+
+                <StatusBar style="auto" />
+                
             </PaperProvider>
         </SQLiteProvider>
     );
@@ -62,10 +70,6 @@ function Ostoslista() {
 
     return (
         <>
-            <Appbar.Header>
-                <Appbar.Content title="Demo 7: SQLite" />
-            </Appbar.Header>
-
             <ScrollView style={{ padding: 20 }}>
 
                 <Text variant="headlineSmall">Ostoslista</Text>
@@ -117,8 +121,6 @@ function Ostoslista() {
                     </Dialog.Actions>
                 </Dialog>
             </Portal>
-
-            <StatusBar style="auto" />
         </>
     );
 }
