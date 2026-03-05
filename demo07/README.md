@@ -1,38 +1,23 @@
 # Demo 7: Expo SQLite
 
-Demossa 7 toteutetaan yksinkertainen ostoslistasovellus Expon **SQLite**-komponentin avulla. Sovellus tallentaa ostokset laitteen paikalliseen SQLite-tietokantaan, jolloin ne säilyvät myös sovelluksen sulkemisen jälkeen. Käyttäjä voi lisätä ostoksia listaan erillisellä React Native Paperin [Dialog-komponentilla](https://callstack.github.io/react-native-paper/docs/components/Dialog/) sekä tyhjentää koko listan yhdellä painalluksella.
+## Oppimistavoitteet
 
----
+Tämän demon jälkeen opiskelija osaa:
+- selittää, miksi `SQLiteProvider` + `onInit` -malli on suositeltava tapa alustaa tietokanta React Native -sovelluksessa
+- asentaa ja konfiguroida `expo-sqlite`-paketin Expo-projektiin
+- luoda taulun, lisätä rivejä ja hakea dataa `execAsync`-, `runAsync`- ja `getAllAsync`-metodeilla
+- käyttää `useSQLiteContext()`-hookia tietokantaolion hakemiseen komponentissa
+- toteuttaa modaali-ikkunan React Native Paperin `Dialog`- ja `Portal`-komponenteilla
 
-## 1. Projektin alustaminen
+## 1. SQLite mobiilisovelluksissa
 
-Tämän demon alustaminen seuraa samaa kaavaa kuin edelliset demot. Tarkat ohjeet projektin luomisesta ja kehityspalvelimen käynnistämisestä löytyvät [demo 4:n README.md-tiedostosta](../demo04/README.md).
+### Mitä SQLite on?
 
-### Vaihe 1: Projektin luominen
+[SQLite](https://www.sqlite.org/) on kevyt relaatiotietokantajärjestelmä, joka tallentaa koko tietokannan yhteen tiedostoon laitteen muistiin. Se ei tarvitse erillistä palvelinta eikä verkkoyhteyttä, minkä takia se sopii erinomaisesti mobiilisovelluksiin paikallisen datan tallentamiseen. Demo 3:ssa käytettiin SQLiteä palvelinpuolella Prisman kautta — tässä demossa sama tietokantamoottori otetaan käyttöön suoraan mobiililaitteella.
 
-Luo projektikansio ja alusta Expo-projekti SDK 54 -versiolla:
+### expo-sqlite
 
-```bash
-mkdir demo07
-cd demo07
-npx create-expo-app@latest . --template blank-typescript@sdk-54
-```
-
-> **Huom!** Expo SDK 55 on siirtymävaiheessa, eikä Expo Go -sovelluksen julkaistu versio tue sitä vielä täysin. Käytä toistaiseksi `@sdk-54`-määrettä.
-
-### Vaihe 2: Kehityspalvelimen käynnistäminen
-
-```bash
-npx expo start
-```
-
-Skannaa terminaaliin ilmestyvä QR-koodi Expo Go -sovelluksella (Android) tai laitteen Kamera-sovelluksella (iOS).
-
----
-
-## 2. expo-sqlite
-
-`expo-sqlite` on Expon SDK-komponentti, joka tarjoaa pääsyn laitteen paikalliseen SQLite-tietokantaan. SQLite on kevyt relaatiotietokantajärjestelmä, joka tallentaa tiedon laitteen muistiin tiedostona. Se sopii erinomaisesti mobiilisovelluksiin, joissa tarvitaan paikallista tietojen tallennusta ilman verkkoyhteyttä.
+[`expo-sqlite`](https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/) on Expon SDK-komponentti, joka tarjoaa pääsyn laitteen paikalliseen SQLite-tietokantaan. Toisin kuin demo 3:n Prisma-ORM, `expo-sqlite` käyttää suoraa SQL-syntaksia kyselyissä.
 
 **Asennus:**
 
@@ -40,13 +25,11 @@ Skannaa terminaaliin ilmestyvä QR-koodi Expo Go -sovelluksella (Android) tai la
 npx expo install expo-sqlite
 ```
 
-**Dokumentaatio:** [expo-sqlite – Expo SDK 54](https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/)
+### SQLiteProvider ja onInit
 
----
+Tietokannan avaaminen ja alustaminen (taulujen luominen, alkudatan lisääminen) ovat **asynkronisia** operaatioita — ne vaativat `await`-kutsun. React-komponenttifunktio on kuitenkin synkroninen: `function App()` ei voi olla `async`, eikä sen sisällä voi suoraan kutsua `await`:ia. Tämä luo ongelman: miten varmistetaan, ettei mikään komponentti yritä käyttää tietokantaa ennen kuin se on valmis?
 
-### SQLiteProvider
-
-[`SQLiteProvider`](https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/#sqliteprovider) on React-kontekstikomponentti, joka avaa tietokantayhteyden ja asettaa sen saataville kaikille sen sisällä oleville komponenteille. Se kääritään sovelluksen juurikomponentin ympärille:
+[`SQLiteProvider`](https://docs.expo.dev/versions/v54.0.0/sdk/sqlite/#sqliteprovider) ratkaisee tämän ongelman. Se on React-kontekstikomponentti, joka hoitaa kolme asiaa automaattisesti: avaa tietokannan, kutsuu `onInit`-alustus­funktion ja asettaa tietokantaolion React-kontekstiin kaikkien lapsikomponenttien saataville. Provider ei renderöi lapsikomponentteja ennen kuin `onInit` on suoritettu loppuun. Tämä tarkoittaa, ettei tarvita null-tarkistuksia eikä tietokantaa tarvitse välittää propsina.
 
 ```tsx
 import { SQLiteProvider } from 'expo-sqlite';
@@ -54,16 +37,18 @@ import { SQLiteProvider } from 'expo-sqlite';
 export default function App() {
     return (
         <SQLiteProvider databaseName="ostokset.db" onInit={alustaKanta}>
-            {/* lapsikomponentit */}
+            {/* lapsikomponentit — renderöidään vasta kun tietokanta on valmis */}
         </SQLiteProvider>
     );
 }
 ```
 
-- `databaseName` määrittää tietokantatiedoston nimen. Jos tiedostoa ei ole olemassa, se luodaan automaattisesti.
-- `onInit` on valinnainen asynkroninen funktio, joka suoritetaan kerran heti tietokannan avaamisen jälkeen. Se saa tietokantaolion parametrikseen. Tässä funktiossa kannattaa luoda taulut ja lisätä alkudata.
+| Prop | Tarkoitus |
+|------|-----------|
+| `databaseName` | Tietokantatiedoston nimi. Jos tiedostoa ei ole olemassa, se luodaan automaattisesti. |
+| `onInit` | Valinnainen asynkroninen funktio, joka suoritetaan kerran heti tietokannan avaamisen jälkeen. Saa tietokantaolion parametrikseen. |
 
----
+`SQLiteProvider` noudattaa samaa Provider-mallia kuin demo 5:ssä käyttöön otettu `PaperProvider` — juurikomponentti kääritään kontekstiin, ja lapsikomponentit hakevat kontekstin arvon hookilla.
 
 ### useSQLiteContext
 
@@ -78,15 +63,13 @@ function Ostoslista() {
 }
 ```
 
-Tämä on suositeltava tapa käyttää tietokantayhteyttä, koska tietokantaolio ei tarvitse olla React-tilamuuttuja (`useState`). `SQLiteProvider` huolehtii yhteyden elinkaaren hallinnasta.
-
----
+Tietokantaolio ei ole React-tilamuuttuja (`useState`), vaan pysyvä viittaus, jonka `SQLiteProvider` hallinnoi.
 
 ### Tietokantakyselyt
 
 `expo-sqlite` tarjoaa kolme asynkronista päämetodia tietokantaoperaatioihin:
 
-**`db.execAsync(sql)`** suorittaa yhden tai useamman SQL-lauseen ilman paluuarvoa. Sopii taulujen luomiseen ja alustamiseen:
+**`db.execAsync(sql)`** suorittaa yhden tai useamman SQL-lauseen ilman paluuarvoa. Sopii taulujen luomiseen ja alkudatan lisäämiseen:
 
 ```tsx
 await db.execAsync(`
@@ -95,7 +78,7 @@ await db.execAsync(`
 `);
 ```
 
-**`db.runAsync(sql, parametrit)`** suorittaa yhden SQL-lauseen parametreilla. Parametrit annetaan `?`-merkin tilalle järjestyksessä, mikä estää SQL-injektiohyökkäykset:
+**`db.runAsync(sql, parametrit)`** suorittaa yhden SQL-lauseen parametreilla. Parametrit annetaan `?`-paikkamerkin tilalle järjestyksessä, mikä estää SQL-injektiohyökkäykset:
 
 ```tsx
 await db.runAsync("INSERT INTO ostokset (tuote) VALUES (?)", tuote);
@@ -106,51 +89,37 @@ await db.runAsync("DELETE FROM ostokset");
 
 ```tsx
 const rivit = await db.getAllAsync<Ostos>("SELECT * FROM ostokset");
-setOstokset(rivit);
 ```
 
 Kaikki metodit ovat asynkronisia, joten niiden eteen laitetaan `await`. Funktiot, jotka kutsuvat näitä metodeja, täytyy merkitä `async`-avainsanalla.
 
----
+### Dialog ja Portal
 
-## 3. React Native Paper
-
-Demossa käytetään useita React Native Paper -komponentteja. Asennusohjeet ovat samat kuin [demo 5:n dokumentaatiossa](../demo05/README.md):
-
-```bash
-npm install react-native-paper
-npx expo install react-native-safe-area-context
-```
-
-Tässä demossa käyttöön tulevat uutena `Dialog` ja `Portal`.
-
-### Dialog
+Tässä demossa otetaan käyttöön kaksi uutta React Native Paper -komponenttia.
 
 [`Dialog`](https://callstack.github.io/react-native-paper/docs/components/Dialog/) on modaali-ikkuna, joka avautuu sovelluksen päälle pyytämään käyttäjältä tietoa tai vahvistusta. Se koostuu useasta alikomponentista:
 
 ```tsx
-import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
-
-<Dialog visible={dialogi.auki} onDismiss={() => setDialogi({ ...dialogi, auki: false })}>
-    <Dialog.Title>Lisää uusi ostos</Dialog.Title>
+<Dialog visible={onkoAuki} onDismiss={suljeFunktio}>
+    <Dialog.Title>Otsikko</Dialog.Title>
     <Dialog.Content>
-        <TextInput label="Ostos" mode="outlined" />
+        <TextInput label="Syöte" mode="outlined" />
     </Dialog.Content>
     <Dialog.Actions>
-        <Button onPress={lisaaOstos}>Lisää listaan</Button>
+        <Button onPress={tallenna}>Tallenna</Button>
     </Dialog.Actions>
 </Dialog>
 ```
 
-- `visible` ohjaa, onko dialogi näkyvissä. Se on `true` tai `false`.
-- `onDismiss` kutsutaan, kun käyttäjä sulkee dialogin napauttamalla sen ulkopuolelle.
-- `Dialog.Title` on dialogin otsikko.
-- `Dialog.Content` sisältää dialogin sisällön, tässä tapauksessa tekstikentän.
-- `Dialog.Actions` sisältää toimintopainikkeet.
+| Prop / alikomponentti | Tarkoitus |
+|------------------------|-----------|
+| `visible` | Ohjaa, onko dialogi näkyvissä (`true` / `false`) |
+| `onDismiss` | Kutsutaan, kun käyttäjä sulkee dialogin napauttamalla sen ulkopuolelle |
+| `Dialog.Title` | Dialogin otsikko |
+| `Dialog.Content` | Dialogin varsinainen sisältö (esim. tekstikenttä) |
+| `Dialog.Actions` | Toimintopainikkeet dialogin alaosassa |
 
-### Portal
-
-[`Portal`](https://callstack.github.io/react-native-paper/docs/components/Portal/) renderöi lapsielementtinsä sovelluksen juuren tasolle, normaalin komponenttipuun ulkopuolelle. Tämä on välttämätöntä dialogeille ja muille pop-up-elementeille, jotta ne näkyvät muiden elementtien päällä riippumatta siitä, missä kohtaa komponenttipuuta `Portal` on kirjoitettu:
+[`Portal`](https://callstack.github.io/react-native-paper/docs/components/Portal/) renderöi lapsielementtinsä sovelluksen juuren tasolle, normaalin komponenttipuun ulkopuolelle. Tämä on välttämätöntä dialogeille ja muille pop-up-elementeille, jotta ne näkyvät kaiken muun sisällön päällä:
 
 ```tsx
 <Portal>
@@ -158,30 +127,98 @@ import { Button, Dialog, Portal, TextInput } from 'react-native-paper';
 </Portal>
 ```
 
-`Portal` vaatii toimiakseen `PaperProvider`-kontekstin, joka asetetaan sovelluksen juuressa.
+`Portal` vaatii toimiakseen `PaperProvider`-kontekstin, joka on otettu käyttöön demo 5:ssä.
+
+### Demosovellus
+
+Demossa 7 rakennetaan yksinkertainen **ostoslistasovellus**, joka tallentaa ostokset laitteen paikalliseen SQLite-tietokantaan. Käyttäjä voi lisätä uusia ostoksia Dialog-komponentilla sekä tyhjentää koko listan yhdellä painalluksella. Demoversio alustaa tietokannan siemendatalla jokaisella käynnistyskerralla, jotta sovellus alkaa aina samasta tunnetusta tilasta.
+
+Demo 3:sta poiketen tässä demossa tietokantaa käytetään suoraan SQL-lauseilla ilman ORM-kerrosta (Prisma). Uutena konseptina tulee `SQLiteProvider`-kontekstikomponentti tietokannan asynkroniseen alustamiseen sekä React Native Paperin `Dialog`- ja `Portal`-komponentit modaali-ikkunan toteuttamiseen. Projektin alustaminen ja React Native Paperin perusasetukset seuraavat samaa kaavaa kuin demoissa 4–6 — tarkat ohjeet löytyvät tarvittaessa [demo 4:n](../demo04/README.md) ja [demo 5:n](../demo05/README.md) README-tiedostoista.
 
 ---
 
-## 4. Sovelluksen ohjelmointi vaiheittain
+## 2. Demosovelluksen rakentuminen vaihe vaiheelta
 
-### Vaihe 1: Pakettien asentaminen
+### Vaihe 1: Projektin luominen ja kehityspalvelimen käynnistäminen
 
-Sammuta kehityspalvelin `Ctrl + C`:llä ja asenna demon tarvitsemat paketit:
+Luodaan projektikansio ja alustetaan Expo-projekti SDK 54 -versiolla, kuten aiemmissa demoissa:
+
+```bash
+mkdir demo07
+cd demo07
+npx create-expo-app@latest . --template blank-typescript@sdk-54
+```
+
+> **Huomio:** Expo SDK 55 on siirtymävaiheessa, eikä Expo Go -sovelluksen julkaistu versio tue sitä vielä täysin. Toistaiseksi käytetään `@sdk-54`-määrettä.
+
+Käynnistetään kehityspalvelin ja tarkistetaan, että oletussovellus avautuu Expo Go:ssa:
+
+```bash
+npx expo start
+```
+
+Skannataan terminaaliin ilmestyvä QR-koodi Expo Go -sovelluksella (Android) tai laitteen Kamera-sovelluksella (iOS).
+
+### Vaihe 2: Pakettien asentaminen ja app.json-konfiguraatio
+
+Sammutetaan kehityspalvelin `Ctrl + C`:llä ja asennetaan demon tarvitsemat paketit:
 
 ```bash
 npx expo install expo-sqlite react-native-safe-area-context
 npm install react-native-paper
 ```
 
-Käynnistä kehityspalvelin asennusten jälkeen uudelleen:
+`expo-sqlite` on tietokannan SQLite-komponentti ja `react-native-safe-area-context` on React Native Paperin vaatima riippuvuus, kuten demo 5:ssä. Molemmat asennetaan `npx expo install` -komennolla SDK-yhteensopivuuden varmistamiseksi. `react-native-paper` asennetaan tavallisella `npm install` -komennolla, koska se ei ole Expo SDK -paketti.
+
+Lisätään `expo-sqlite`-plugin `app.json`-tiedoston `plugins`-taulukkoon:
+
+```json
+{
+  "expo": {
+    "name": "demo07",
+    "slug": "demo07",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
+  }
+}
+```
+
+`"plugins": ["expo-sqlite"]` rekisteröi `expo-sqlite`-paketin Expon config plugin -järjestelmään. Plugin huolehtii natiivipuolen konfiguraatiosta automaattisesti.
+
+Käynnistetään kehityspalvelin asennusten jälkeen uudelleen:
 
 ```bash
 npx expo start
 ```
 
-### Vaihe 2: Tietorakenteet ja tietokannan alustus
+### Vaihe 3: Tietorakenteet ja tietokannan alustus
 
-Korvaa `App.tsx`:n oletussisältö aloittamalla TypeScript-rajapinnoilla ja tietokannan alustuksella. Rajapinnat määrittävät tietotyypit, joita sovellus käyttää.
+Korvataan `App.tsx`:n oletussisältö aloittamalla TypeScript-rajapinnoilla ja tietokannan alustusfunktiolla:
 
 ```tsx
 import { SQLiteProvider, useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
@@ -207,15 +244,17 @@ async function alustaKanta(db: SQLiteDatabase): Promise<void> {
 }
 ```
 
-`Ostos`-rajapinta kuvaa yhden tietokantarivin rakennetta: `id` on automaattinen numeroavain ja `tuote` on tuotteen nimi. TypeScript käyttää tätä `getAllAsync<Ostos>`-kutsun yhteydessä, jolloin palautettu taulukko on tyypitetty oikein.
+`Ostos`-rajapinta kuvaa yhden tietokantarivin rakennetta: `id` on automaattinen kokonaislukuavain ja `tuote` on tuotteen nimi. TypeScript käyttää tätä `getAllAsync<Ostos>`-kutsun yhteydessä, jolloin palautettu taulukko on tyypitetty oikein.
 
 `DialogiData`-rajapinta kuvaa dialogin tilaa: `auki` kertoo, onko dialogi näkyvissä, ja `teksti` sisältää tekstikentän arvon.
 
-`alustaKanta` on asynkroninen funktio, joka suoritetaan kerran kun `SQLiteProvider` avaa tietokannan. Se ensin poistaa aiemman taulun (`DROP TABLE IF EXISTS`) ja luo sen uudelleen siemenriveineen. `IF EXISTS` estää virheen, jos taulua ei vielä ole olemassa. Demoympäristössä taulun tyhjentäminen käynnistyksen yhteydessä varmistaa, että sovellus alkaa aina samasta tunnetusta tilasta.
+`alustaKanta` on asynkroninen funktio, joka annetaan `SQLiteProvider`:n `onInit`-propsille. Funktio saa tietokantaolion parametrikseen — huomaa `type SQLiteDatabase` -importti, joka tuo vain TypeScript-tyypin ilman suoritusaikaista koodia. Funktio ensin poistaa aiemman taulun (`DROP TABLE IF EXISTS`) ja luo sen uudelleen kolmella siemenrivillä. Taulun pudottaminen käynnistyksen yhteydessä varmistaa, että demosovellus alkaa aina samasta tunnetusta tilasta.
 
-### Vaihe 3: App-komponentti ja SQLiteProvider
+> **Huomio:** Tuotantosovelluksessa taulua ei tietenkään pudoteta joka käynnistyksellä. Sen sijaan käytettäisiin `CREATE TABLE IF NOT EXISTS` -lausetta, joka luo taulun vain jos sitä ei vielä ole olemassa, ja data säilyisi sovelluskertojen välillä.
 
-Lisää `App`-komponentti, joka käärii sovelluksen `SQLiteProvider`- ja `PaperProvider`-konteksteihin:
+### Vaihe 4: App-komponentti ja SQLiteProvider
+
+Lisätään `App`-komponentti, joka käärii sovelluksen `SQLiteProvider`- ja `PaperProvider`-konteksteihin:
 
 ```tsx
 import { PaperProvider } from 'react-native-paper';
@@ -231,13 +270,13 @@ export default function App() {
 }
 ```
 
-`App` ei itse sisällä mitään logiikkaa tai tilaa. Sen ainoa tehtävä on asettaa kontekstit kuntoon ja renderöidä `Ostoslista`-komponentti. Tämä on tyypillinen React-arkkitehtuurimalli, jossa juurikomponentti huolehtii konteksteista ja varsinainen logiikka on erillisessä komponentissa.
+`App` ei itse sisällä mitään logiikkaa tai tilaa. Sen ainoa tehtävä on asettaa kontekstit kuntoon ja renderöidä `Ostoslista`-komponentti. Tämä on tyypillinen React-arkkitehtuurimalli, jossa juurikomponentti huolehtii konteksteista ja varsinainen sovelluslogiikka on erillisessä lapsikomponentissa.
 
-`SQLiteProvider` avaa tietokantatiedoston `ostokset.db` ja kutsuu `alustaKanta`-funktiota ennen kuin lapsikomponentit renderöidään. Tietokantaolio asetetaan kontekstiin, josta `Ostoslista` hakee sen `useSQLiteContext()`-hookilla.
+`SQLiteProvider` on ulompi konteksti: se avaa tietokantatiedoston `ostokset.db`, kutsuu `alustaKanta`-funktiota ja asettaa tietokantaolion kontekstiin. `PaperProvider` on sisempi konteksti, kuten demo 5:ssä. Molemmat kontekstit ovat `Ostoslista`-komponentin käytettävissä.
 
-### Vaihe 4: Ostoslista-komponentti ja tietokantakyselyt
+### Vaihe 5: Ostoslista-komponentti ja tietokantakyselyt
 
-Lisää `Ostoslista`-komponentti, joka hoitaa sovelluksen logiikan ja käyttöliittymän:
+Lisätään `Ostoslista`-komponentti, joka hoitaa sovelluksen logiikan:
 
 ```tsx
 import { useEffect, useState } from 'react';
@@ -268,31 +307,33 @@ function Ostoslista() {
         haeOstokset();
     }, []);
 
-    // ...
+    // return (...) — käyttöliittymä lisätään seuraavassa vaiheessa
 }
 ```
 
 `useSQLiteContext()` hakee tietokantaolion `SQLiteProvider`-kontekstista. Tietokanta ei ole tilamuuttuja, vaan pysyvä viittaus, jota ei tarvitse tallentaa `useState`:en.
 
-`haeOstokset` hakee kaikki tietokannan rivit `getAllAsync`-metodilla ja päivittää `ostokset`-tilamuuttujan. Funktio on asynkroninen `await`-kutsun vuoksi.
+`haeOstokset` hakee kaikki tietokannan rivit `getAllAsync`-metodilla ja päivittää `ostokset`-tilamuuttujan. `<Ostos>`-tyyppiparametri varmistaa, että palautetut rivit ovat oikein tyypitettyjä.
 
 `lisaaOstos` lisää uuden tuotteen tietokantaan `runAsync`-metodilla. `?`-paikkamerkki korvautuu `dialogi.teksti`-arvolla. Lisäyksen jälkeen lista haetaan uudelleen ja dialogi suljetaan. `await haeOstokset()` varmistaa, että lista päivittyy ennen kuin dialogi sulkeutuu.
 
 `tyhjennaLista` poistaa kaikki rivit `DELETE FROM ostokset` -lauseella ja hakee listan uudelleen.
 
-`useEffect` kutsuu `haeOstokset()`:ia kerran komponentin ensilatauksessa. Tyhjä riippuvuustaulukko `[]` varmistaa, että efekti suoritetaan vain kerran. Tietokanta on jo alustettu `alustaKanta`-funktiossa ennen kuin `Ostoslista` renderöidään, joten haku palauttaa heti alkurivin.
+`useEffect` kutsuu `haeOstokset()`-funktiota kerran komponentin ensilatauksessa, kuten demo 5:ssä. Tyhjä riippuvuustaulukko `[]` varmistaa, että efekti suoritetaan vain kerran. Tietokanta on jo alustettu `alustaKanta`-funktiossa ennen kuin `Ostoslista` renderöidään, joten haku palauttaa heti alkurivit.
 
-### Vaihe 5: Käyttöliittymä
+### Vaihe 6: Käyttöliittymä
 
-Lisää `return`-lauseen sisältö `Ostoslista`-komponenttiin. Päivitä ensin importit:
+Lisätään `Ostoslista`-komponentin `return`-lauseen sisältö. Tässä vaiheessa tarvitaan loput importit — alla on koko tiedoston lopulliset importit koottuna yhteen:
 
 ```tsx
 import { StatusBar } from 'expo-status-bar';
 import { ScrollView } from 'react-native';
 import { Appbar, Button, Dialog, List, PaperProvider, Portal, Text, TextInput } from 'react-native-paper';
+import { SQLiteProvider, useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
+import { useEffect, useState } from 'react';
 ```
 
-Lisää sitten `return`:
+Lisätään `return`-lause `Ostoslista`-komponenttiin:
 
 ```tsx
     return (
@@ -342,6 +383,7 @@ Lisää sitten `return`:
                         <TextInput
                             label="Ostos"
                             mode="outlined"
+                            value={dialogi.teksti}
                             placeholder="Kirjoita ostos..."
                             onChangeText={(uusiTeksti) => setDialogi({ ...dialogi, teksti: uusiTeksti })}
                         />
@@ -357,39 +399,64 @@ Lisää sitten `return`:
     );
 ```
 
-Listan renderöinnissä `ostokset.map()` käy taulukon läpi ja palauttaa jokaiselle riville `List.Item`-komponentin. `key={ostos.id}` käyttää tietokannan pääavainta Reactin listaelementin tunnisteena. Tämä on parempi kuin taulukon indeksin käyttäminen, koska `id` on yksilöllinen ja pysyvä myös rivien lisäyksen ja poiston jälkeen.
+Käyttöliittymä koostuu kolmesta osasta: yläpalkista, vieritettävästä sisältöalueesta ja modaali-ikkunasta.
 
-`Portal` sijoitetaan `ScrollView`-komponentin ulkopuolelle. Vaikka `Portal` renderöi sisältönsä sovelluksen juuren tasolle joka tapauksessa, sijoittaminen selkeästi muun sisällön ulkopuolelle tekee rakenteesta helpommin luettavan.
+`Appbar.Header` ja `Appbar.Content` luovat yläpalkin, kuten aiemmissa demoissa. `ScrollView` mahdollistaa sisällön vierittämisen, jos lista kasvaa ruutua pidemmäksi.
+
+Listan renderöinnissä `ostokset.map()` käy taulukon läpi ja palauttaa jokaiselle riville `List.Item`-komponentin. `key={ostos.id}` käyttää tietokannan pääavainta Reactin listaelementin tunnisteena — tämä on parempi kuin taulukon indeksin käyttäminen, koska `id` on yksilöllinen ja pysyvä myös rivien lisäyksen ja poiston jälkeen. Jos lista on tyhjä, näytetään "Ei ostoksia" -teksti ehdollisella renderöinnillä.
+
+"Lisää uusi ostos" -painike avaa dialogin asettamalla `dialogi.auki` todeksi. "Tyhjennä lista" -painike kutsuu `tyhjennaLista`-funktiota, joka poistaa kaikki rivit tietokannasta.
+
+`Portal`-komponentti sijoitetaan `ScrollView`-komponentin ulkopuolelle. Vaikka `Portal` renderöi sisältönsä sovelluksen juuren tasolle joka tapauksessa, sijoittaminen selkeästi muun sisällön ulkopuolelle tekee rakenteesta helpommin luettavan.
+
+`Dialog`-komponentin `visible`-prop seuraa `dialogi.auki`-tilaa. `TextInput`-komponentissa `value={dialogi.teksti}` tekee kentästä **kontrolloidun** — React-tila ohjaa kentän arvoa, ja kun `dialogi.teksti` nollataan ostoksen lisäämisen tai dialogin sulkemisen yhteydessä, kenttä tyhjenee automaattisesti. `onChangeText` päivittää tilamuuttujan jokaisella näppäinpainalluksella.
 
 Lopullinen ohjelmakoodi vastaa nyt demon `App.tsx`-tiedostoa kokonaisuudessaan.
 
+### Projektin lopullinen rakenne
+
+```
+demo07/
+├── assets/                  # Ikonit ja splash screen
+├── node_modules/            # Asennetut riippuvuudet (ei versionhallintaan)
+├── App.tsx                  # Sovelluksen pääkomponentti (ostoslistasovellus)
+├── app.json                 # Expon konfiguraatio ja expo-sqlite plugin
+├── index.ts                 # Sovelluksen aloituspiste
+├── package.json             # Riippuvuudet ja käynnistyskomennot
+└── tsconfig.json            # TypeScript-konfiguraatio
+```
+
 ---
 
-## 5. Muistilista
+## 3. Expo SQLite: muistilista
 
-### expo-sqlite
+### expo-sqlite-metodit
+
+| Metodi | Käyttötarkoitus |
+|--------|-----------------|
+| `db.execAsync(sql)` | Suorittaa yhden tai useamman SQL-lauseen ilman paluuarvoa (taulujen luonti, alkudata) |
+| `db.runAsync(sql, parametrit)` | Suorittaa yhden SQL-lauseen parametreilla (`INSERT`, `UPDATE`, `DELETE`); `?` on paikkamerkki arvolle |
+| `db.getAllAsync<T>(sql)` | Suorittaa `SELECT`-kyselyn ja palauttaa rivit tyypitettynä taulukkona |
+
+### SQLiteProvider ja useSQLiteContext
 
 | Ominaisuus | Käyttötarkoitus |
 |------------|-----------------|
 | `<SQLiteProvider databaseName onInit>` | Avaa tietokannan ja asettaa sen kontekstiin; `onInit` suoritetaan kerran avauksen jälkeen |
 | `useSQLiteContext()` | Hakee tietokantaolion kontekstista; käytetään `SQLiteProvider`:n sisällä olevissa komponenteissa |
-| `db.execAsync(sql)` | Suorittaa yhden tai useamman SQL-lauseen ilman paluuarvoa |
-| `db.runAsync(sql, parametrit)` | Suorittaa yhden SQL-lauseen parametreilla; `?` on paikkamerkki arvolle |
-| `db.getAllAsync<T>(sql)` | Suorittaa `SELECT`-kyselyn ja palauttaa rivit tyypitettynä taulukkona |
+| `type SQLiteDatabase` | TypeScript-tyyppi `onInit`-funktion parametrille |
 
-### React Native Paper -komponentit
+### React Native Paper — uudet komponentit
 
 | Komponentti | Dokumentaatio | Käyttötarkoitus |
 |-------------|---------------|-----------------|
-| `<PaperProvider>` | [Provider](https://callstack.github.io/react-native-paper/docs/components/Provider/) | Koko sovelluksen juurikomponentti, alustaa teeman ja Portal-kontekstin |
-| `<Appbar.Header>` | [Appbar](https://callstack.github.io/react-native-paper/docs/components/Appbar/) | Yläpalkki, sijoittuu automaattisesti tilapalkin alapuolelle |
-| `<Appbar.Content>` | [Appbar](https://callstack.github.io/react-native-paper/docs/components/Appbar/) | Yläpalkin otsikkoteksti |
-| `<List.Item>` | [List](https://callstack.github.io/react-native-paper/docs/components/List.Item/) | Yksittäinen listarivi `title`-tekstillä |
-| `<Button>` | [Button](https://callstack.github.io/react-native-paper/docs/components/Button/) | Material Design -painike; `mode="contained"` tekee siitä täytetyn |
-| `<Portal>` | [Portal](https://callstack.github.io/react-native-paper/docs/components/Portal/) | Renderöi sisältönsä sovelluksen juuren tasolle |
-| `<Dialog>` | [Dialog](https://callstack.github.io/react-native-paper/docs/components/Dialog/) | Modaali-ikkuna käyttäjän syötettä tai vahvistusta varten |
-| `<TextInput>` | [TextInput](https://callstack.github.io/react-native-paper/docs/components/TextInput/) | Material Design -tekstikenttä; `mode="outlined"` tekee siitä reunustetun |
-| `<Text>` | [Text](https://callstack.github.io/react-native-paper/docs/components/Text/) | Material Design -tyyliä noudattava tekstikomponentti; `variant` ohjaa kokoa |
+| `<Portal>` | [Portal](https://callstack.github.io/react-native-paper/docs/components/Portal/) | Renderöi sisältönsä sovelluksen juuren tasolle (vaatii `PaperProvider`:n) |
+| `<Dialog>` | [Dialog](https://callstack.github.io/react-native-paper/docs/components/Dialog/) | Modaali-ikkuna; `visible` ohjaa näkyvyyttä, `onDismiss` sulkee |
+| `<Dialog.Title>` | [Dialog](https://callstack.github.io/react-native-paper/docs/components/Dialog/) | Dialogin otsikko |
+| `<Dialog.Content>` | [Dialog](https://callstack.github.io/react-native-paper/docs/components/Dialog/) | Dialogin sisältöalue |
+| `<Dialog.Actions>` | [Dialog](https://callstack.github.io/react-native-paper/docs/components/Dialog/) | Dialogin toimintopainikkeet |
+
+Aiemmin käyttöön otetuista komponenteista (`Appbar`, `Button`, `List.Item`, `Text`, `TextInput`, `PaperProvider`) löytyvät kuvaukset [demo 5:n muistilistasta](../demo05/README.md).
 
 ### Expo-komennot
 
@@ -397,21 +464,26 @@ Lopullinen ohjelmakoodi vastaa nyt demon `App.tsx`-tiedostoa kokonaisuudessaan.
 |---------|---------|
 | `npx create-expo-app@latest . --template blank-typescript@sdk-54` | Luo uuden Expo SDK 54 + TypeScript -projektin nykyiseen kansioon |
 | `npx expo install <paketti>` | Asentaa SDK-version kanssa yhteensopivan Expo-paketin |
-| `npm install <paketti>` | Asentaa npm-paketin (käytetään React Native Paper -asennuksessa) |
 | `npx expo start` | Käynnistää Expo-kehityspalvelimen |
-| `Ctrl + C` | Sammuttaa kehityspalvelimen |
 
 ---
 
 ## Sovelluksen käynnistys
 
-Jos kloonasit projektin valmiina tai haluat käynnistää sen uudelleen:
+Jos projekti kloonataan valmiina tai halutaan käynnistää se uudelleen:
+
+**1. Asennetaan riippuvuudet:**
 
 ```bash
 npm install
+```
+
+`npm install` asentaa `package.json`-tiedostossa listatut riippuvuudet `node_modules/`-kansioon.
+
+**2. Käynnistetään kehityspalvelin:**
+
+```bash
 npx expo start
 ```
 
-`npm install` asentaa `package.json`-tiedostossa listatut riippuvuudet `node_modules/`-kansioon. Tämä on tarpeen aina, kun kloonat projektin tai `node_modules/`-kansio puuttuu, koska sitä ei lisätä versionhallintaan.
-
-`npx expo start` käynnistää kehityspalvelimen. Skannaa terminaaliin ilmestyvä QR-koodi Expo Go -sovelluksella (Android) tai laitteen Kamera-sovelluksella (iOS).
+Skannataan terminaaliin ilmestyvä QR-koodi Expo Go -sovelluksella (Android) tai laitteen Kamera-sovelluksella (iOS).

@@ -107,6 +107,7 @@ function Ostoslista() {
                         <TextInput
                             label="Ostos"
                             mode="outlined"
+                            value={dialogi.teksti}
                             placeholder="Kirjoita ostos..."
                             onChangeText={(uusiTeksti) => setDialogi({ ...dialogi, teksti: uusiTeksti })}
                         />
