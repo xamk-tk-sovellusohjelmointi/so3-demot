@@ -7,7 +7,7 @@ Tämän demon jälkeen opiskelija osaa:
 - selittää, mikä React Context API on ja miksi sitä käytetään
 - tunnistaa prop drilling -ongelman ja ratkaista sen kontekstilla
 - luoda kontekstin `createContext`-funktiolla ja Provider-komponentilla
-- lukea kontekstin arvoja React 19:n `use`-hookilla
+- lukea kontekstin arvoja `useContext`-hookilla
 - jakaa sovelluksen tilan ja metodit usean komponentin kesken ilman propseja
 - yhdistää React-asiakassovelluksen Express REST API -palvelimeen
 
@@ -40,7 +40,7 @@ Context API koostuu kolmesta osasta:
 |-----|---------|
 | `createContext()` | Luo kontekstin (tietovaraston) |
 | `Provider` | Komponentti, joka tarjoaa kontekstin arvon lapsikomponenteille |
-| `use()` (React 19) | Hook, jolla lapsikomponentti lukee kontekstin arvon |
+| `useContext()` | Hook, jolla lapsikomponentti lukee kontekstin arvon |
 
 Kontekstin kanssa sama esimerkki yksinkertaistuu:
 
@@ -52,7 +52,7 @@ TehtavaProvider (tila: tehtavat)
                     └── Tehtava ← lukee tehtävät suoraan kontekstista
 ```
 
-Jokainen Provider-komponentin sisällä oleva komponentti voi lukea kontekstin arvon suoraan `use`-hookilla. Välitason komponenttien ei tarvitse tietää mitään välitettävästä datasta.
+Jokainen Provider-komponentin sisällä oleva komponentti voi lukea kontekstin arvon suoraan `useContext`-hookilla. Välitason komponenttien ei tarvitse tietää mitään välitettävästä datasta.
 
 ### Kolmannen osapuolen vaihtoehdot
 
