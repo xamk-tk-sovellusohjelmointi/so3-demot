@@ -1,18 +1,86 @@
-# React-sovelluksen tilanhallinta
+# Demo 8: React Context API
 
-Tässä demossa perehdytään React-sovelluksen tilanhallintaan koko sovelluksen tasolla. Aiemmissa demoissa tilanhallintaa on tehty yksittäisten komponenttien sisällä tilamuuttujien avulla. Tarvittaessa, jos jokin tilan tieto on pitänyt välittää toiselle komponentille, on käytetty komponenttien Props-ominaisuutta. Tämä toimii yksittäisissä tapauksissa, mutta sovellusten koon kasvaessa tästä tulee painajainen sovelluksen arkkitehtuurin kannalta ja johtaa ns. prop-drilling -käytäntöön, jossa propseja välitetään komponenteille vain sen takia, jotta ne voidaan välittää edelleen alemmalle tasolle. Tässä ei tietenkään ole mitään järkeä, että propseja välitetään komponenteille vain siksi, että ne voivat välittää propsin edelleen eteenpäin. Olisi paljon helpompaa, jos tarvittavaan tilan tietoon päästäisiin käsiksi suoraan sitä tarvitsevassa komponentissa.
+## Oppimistavoitteet
 
-Tähän liittyy React-sovelluksen tilanhallinta globaalisti koko sovelluksen tasolla tai esimerkiksi rajattuna tiettyyn alaosaan sovelluksesta. Tätä varten onkin kehitetty erilaisia React-lisäosia, kuten Redux, jolla sovelluksen tilan tietoja voidaan välittää, mutta nykyään React sisältää jo ihan oletuksena oman rajapinnan tälle toiminnallisuudelle nimeltä React Context API.
+Tämän demon jälkeen opiskelija osaa:
 
-Tässä demossa harjoitellaan React Context APIn käyttöä ja sitä, miten laajemmissa sovelluksissa jokin tietty tieto esimerkiksi lomakkeesta voidaan välittää täysin toiseen osaan asiakassovellusta. Aiemmissa demoissa "ongelmana" on ollut, että App-komponentti sisältää suoraan eri tarkoituksiin kirjoitettuja koodeja sekaisin. Tässä demossa palataan vähän edellisen opintojakson 2 aiheisiin ja tehdään asiakas- ja palvelinsovelluksen yhdistäminen fullstack-sovellukseksi, jossa tehtävälistaan kirjatut tiedot tallennetaan backendin kautta palvelimen tietokantaan (tässä yksinkertainen json-tiedosto).
+- selittää, mikä React Context API on ja miksi sitä käytetään
+- tunnistaa prop drilling -ongelman ja ratkaista sen kontekstilla
+- luoda kontekstin `createContext`-funktiolla ja Provider-komponentilla
+- lukea kontekstin arvoja React 19:n `use`-hookilla
+- jakaa sovelluksen tilan ja metodit usean komponentin kesken ilman propseja
+- yhdistää React-asiakassovelluksen Express REST API -palvelimeen
 
-Jos muistat edellisen toteutuksen Web Service ja REST API -teoriaa, ymmärrät, että tällaista sovellusta ei voida toteuttaa siten, että yksi reitti tai komponentti sisältää kaiken sovelluksen toiminnallisuuden. Tehtävälista-toiminnallisuus voi esimerkiksi olla vain yksi osa laajemman sovelluksen kokonaisuutta. Tällaisessa tilanteessa esimerkiksi palvelimen puolella jokainen ominaisuus saa oman rajapinnan Express Routen kautta (localhost:3000/api/ominaisuus). Tätä ajattelua on nyt otettu mukaan demon 9 toteutukseen asiakassovelluksen puolella. Palvelinkoodit tarjotaan "sellaisenaan", eikä niihin puututa, koska palvelinta tarvitaan vain kontekstin havainnollistusta varten.
+---
 
-Asiakassovelluksessa eri toiminnallisuudet on nyt jaoteltu omiin komponentteihinsa, kuten hyvään ohjelmointikäytäntöön kuuluu, mutta ongelmaksi muodostuu se, että tietoja pitäisi voida välittää komponenttien välillä, joiden toiminnot olivat aiemmin kaikki osa App-komponenttia. Tässä nyt otetaan käyttöön aiemmin mainittu React-sovelluksen konteksti ja React Context API tilan tietojen välittämiseen komponenttien välillä. Enää ei tarvitse määrittää jokaiselle komponentille omia propseja, jotka pitää vielä tarjota aina komponenttia käytettäessä.
+## 1. React-sovelluksen tilanhallinta
 
-Demo 8:ssä on toteutettu siis tehtävälista-sovellus, joka muistuttaa paljon ostoslista-sovellusta sovellusohjelmointi 2 -opintojakson demoista. Tämän opintojakson aiemmissa demoissa sovellukset on toteutettu App-komponentin tasolle, joka on ollut riittävä käytäntö laitekomponenttien harjoittelulle, mutta tässä palataan takaisin Web Service -tyylisten palvelinsovellusten ja React-asiakassovellusten yhteistoimintaan.
+### Prop drilling
+
+React-sovelluksissa tietoa välitetään komponenttien välillä **propsien** kautta. Yksinkertaisissa sovelluksissa tämä toimii hyvin: yläkomponentti antaa tiedon lapsikomponentille, ja lapsi käyttää sitä.
+
+Sovelluksen kasvaessa syntyy tilanne, jossa propseja joudutaan välittämään usean komponenttikerroksen läpi. Välissä olevat komponentit eivät itse tarvitse tietoa, vaan ainoastaan siirtävät sen eteenpäin alemmalle tasolle. Tätä kutsutaan **prop drillingiksi**.
+
+```
+App (tila: tehtavat)
+  └── Sisalto (props: tehtavat)          ← ei käytä itse, välittää vain eteenpäin
+        └── Lista (props: tehtavat)      ← ei käytä itse, välittää vain eteenpäin
+              └── Tehtava (props: tehtava) ← käyttää tietoa
+```
+
+Prop drilling tekee koodista vaikeammin ylläpidettävää. Jokainen välissä oleva komponentti on sidottu tietoon, jota se ei tarvitse.
+
+### React Context API
+
+**Context API** on Reactin sisäänrakennettu ratkaisu prop drilling -ongelmaan. Sen avulla tila ja metodit voidaan jakaa suoraan niitä tarvitseville komponenteille ilman välitason propseja.
+
+Context API koostuu kolmesta osasta:
+
+| Osa | Tehtävä |
+|-----|---------|
+| `createContext()` | Luo kontekstin (tietovaraston) |
+| `Provider` | Komponentti, joka tarjoaa kontekstin arvon lapsikomponenteille |
+| `use()` (React 19) | Hook, jolla lapsikomponentti lukee kontekstin arvon |
+
+Kontekstin kanssa sama esimerkki yksinkertaistuu:
+
+```
+TehtavaProvider (tila: tehtavat)
+  └── App
+        └── Sisalto
+              └── Lista
+                    └── Tehtava ← lukee tehtävät suoraan kontekstista
+```
+
+Jokainen Provider-komponentin sisällä oleva komponentti voi lukea kontekstin arvon suoraan `use`-hookilla. Välitason komponenttien ei tarvitse tietää mitään välitettävästä datasta.
+
+### Kolmannen osapuolen vaihtoehdot
+
+Context API on Reactin oma ratkaisu, joka riittää hyvin useimpiin sovelluksiin. Laajemmissa projekteissa käytetään joskus erillisiä tilanhallintakirjastoja kuten **Redux**, **Zustand** tai **Jotai**. Tällä opintojaksolla keskitytään Context API:n käyttöön.
+
+### Demosovellus
+
+Demossa toteutetaan tehtävälista-sovellus (**fullstack**), jossa React-asiakassovellus kommunikoi Express REST API -palvelimen kanssa. Sovelluksessa voi lisätä tehtäviä, merkitä niitä suoritetuiksi ja poistaa niitä. Tehtävät tallentuvat palvelimelle JSON-tiedostoon.
+
+Asiakassovelluksen käyttöliittymä rakennetaan **Material UI** (MUI) -komponenttikirjastolla. Sovelluksen tila ja logiikka hallitaan yhdessä kontekstitiedostossa, ja jokainen käyttöliittymäkomponentti lukee tarvitsemansa tiedot suoraan kontekstista.
+
+| Komponentti | Tehtävä |
+|-------------|---------|
+| `TehtavaContext.tsx` | Konteksti ja Provider: tila, metodit, palvelinyhteys |
+| `App.tsx` | Pääkomponentti: asettelu ja "Lisää tehtävä" -painike |
+| `Otsikko.tsx` | Sovelluksen otsikko |
+| `Tehtavalista.tsx` | Tehtävien listaus, suoritusmerkintä, poistopainike |
+| `LisaaTehtava.tsx` | Lisäysdialogi uudelle tehtävälle |
+| `PoistaTehtava.tsx` | Vahvistusdialogi tehtävän poistolle |
+
+Palvelinsovellus tarjotaan valmiina. Se on yksinkertainen Express 5 REST API, joka tallentaa tehtävät paikalliseen JSON-tiedostoon.
+
+| Metodi | Polku | Kuvaus |
+|--------|-------|--------|
+| GET | `/api/tehtavalista` | Palauttaa kaikki tehtävät JSON-taulukkona |
+| POST | `/api/tehtavalista` | Korvaa tehtävälistan pyynnön rungon taulukolla |
 
 ## Sisällys
 
-### [React-sovelluksen ohjeistus](./client/README.md)
-### [Lyhyt ohjeistus palvelimesta](./server/README.md)
+### [Asiakassovelluksen ohjeistus](./client/README.md)
+### [Palvelinsovelluksen ohjeistus](./server/README.md)
