@@ -6,13 +6,13 @@ import {
   DialogTitle,
   TextField,
 } from "@mui/material";
-import { use, useRef } from "react";
+import { useContext, useRef } from "react";
 import { TehtavaContext } from "../context/TehtavaContext";
 import type { Tehtava } from "../context/TehtavaContext";
 
 const LisaaTehtava = () => {
   const { lisaysDialogi, setLisaysDialogi, lisaaTehtava } =
-    use(TehtavaContext);
+    useContext(TehtavaContext);
 
   const nimiRef = useRef<HTMLInputElement>(null);
 

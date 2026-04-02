@@ -1,4 +1,4 @@
-import { use } from "react";
+import { useContext } from "react";
 import CheckBoxOutlineBlank from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBox from "@mui/icons-material/CheckBox";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -15,7 +15,7 @@ import type { Tehtava } from "../context/TehtavaContext";
 
 const Tehtavalista = () => {
   const { tehtavat, setPoistoDialogi, vaihdaSuoritus } =
-    use(TehtavaContext);
+    useContext(TehtavaContext);
 
   return (
     <>

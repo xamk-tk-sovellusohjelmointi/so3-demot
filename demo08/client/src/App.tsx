@@ -1,4 +1,4 @@
-import { use } from "react";
+import { useContext } from "react";
 import { Button, Container, Stack } from "@mui/material";
 import Otsikko from "./components/Otsikko";
 import Tehtavalista from "./components/Tehtavalista";
@@ -6,7 +6,7 @@ import LisaaTehtava from "./components/LisaaTehtava";
 import { TehtavaContext } from "./context/TehtavaContext";
 
 const App = () => {
-  const { setLisaysDialogi } = use(TehtavaContext);
+  const { setLisaysDialogi } = useContext(TehtavaContext);
 
   return (
     <Container>

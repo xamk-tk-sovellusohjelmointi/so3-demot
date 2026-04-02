@@ -6,12 +6,12 @@ import {
   Button,
   Typography,
 } from "@mui/material";
-import { use } from "react";
+import { useContext } from "react";
 import { TehtavaContext } from "../context/TehtavaContext";
 
 const PoistaTehtava = () => {
   const { poistoDialogi, setPoistoDialogi, poistaTehtava } =
-    use(TehtavaContext);
+    useContext(TehtavaContext);
 
   const kasittelePoisto = () => {
     poistaTehtava(poistoDialogi.tehtava.id);

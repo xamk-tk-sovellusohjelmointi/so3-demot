@@ -1,69 +1,81 @@
-# Demo 8: React Context API ja `use`-hook
+# Demo 8: React Context API ja `useContext`-hook
 
-## Oppimistavoitteet
+Demossa 8 on rakennettu tehtävälista-sovellus Reactilla. Tehtäviä hallitaan koko sovelluksen tasolla Reactin Context API:n avulla, joka tarjoaa tehtäviin liittyvät tiedot ja toiminnot sovelluksen kaikkien komponenttien käytettäväksi ilman erillistä propsien välittämistä jokaisen komponentin läpi. Samalla sovelluksessa palautetaan mieleen asiakas- ja palvelinsovelluksen yhdistämistä `fetch`-funktioilla. Tehtävät tallennetaan palvelimelle json-tiedostoon tietojen pitkäaikaissäilytystä varten.
 
-Tämän demon jälkeen opiskelija osaa:
+Oppimistavoitteena on, että tutustumalla lähdekoodiin ja tässä olevaan ohjeistukseen, opiskelija tunnistaa Reactin Context API:in liittyvät komennot ja funktiot ja pystyy soveltamaan demon esimerkkejä oman React-sovelluksen "globaaliin" tilanhallintaan.
 
-- luoda React-kontekstin `createContext`-funktiolla ja määritellä sen TypeScript-tyypit
-- toteuttaa Provider-komponentin, joka sisältää sovelluksen tilan ja metodit
-- käyttää React 19:n `use`-hookia kontekstin lukemiseen komponenteissa
-- jakaa sovelluksen komponentit omiin tiedostoihinsa ja yhdistää ne kontekstin kautta
-- kommunikoida palvelimen REST API:n kanssa `fetch`-funktiolla
-- käyttää Material UI -komponenttikirjaston peruskomponentteja (Button, Dialog, List)
+Keskeiset tekniikat:
+
+- React-kontekstin luonti `createContext`-funktiolla (konteksti luodaan omaan `TehtavaContext.tsx`-tiedostoon)
+- Provider-komponentin toteutus React-kontekstista, joka sisältää sovelluksen tilan ja metodit
+- `useContext`-hookin käyttö kontekstin lukemiseen muissa komponenteissa
+- React-palvelimen REST API:n kanssa kommunikointi `fetch`-funktiolla
+
+>[!tip]
+Kirjoitin ohjeistuksen aluksi Claude Codea hyödyntäen edellisen toteutuksen vastaavan demon pohjalta, jota sitten tarkensin tarvittavilta osin.
 
 ---
 
 ## 1. Keskeiset käsitteet
 
-### Context API
+Käydään ensimmäiseksi läpi demon keskeiset käsitteet liittyen:
 
-**Context API** on Reactin sisäänrakennettu ominaisuus sovelluksen tilan jakamiseen komponenttien välillä. Perinteisesti Reactissa tietoa välitetään propsien kautta yläkomponentilta lapsikomponenteille. Kun sovellus kasvaa ja komponentteja on useita tasoja, propseja joudutaan ketjuttamaan usean komponentin läpi (**prop drilling**), vaikka välikomponentit eivät itse tarvitse kyseistä tietoa.
+- Reactin Context API:in ja sen ominaisuuksiin
 
-Context API ratkaisee tämän. Kontekstin avulla tila määritellään yhdessä paikassa (Provider-komponentissa), ja mikä tahansa lapsikomponentti voi lukea sen suoraan.
+### 1.1 Reactin Context API
 
-Context API koostuu kolmesta osasta:
+**Context API** on Reactin sisäänrakennettu ominaisuus sovelluksen ns. "globaalin" tilan jakamiseen komponenttien välillä. Perinteisesti Reactissa tietoa välitetään propsien kautta yläkomponentilta lapsikomponenteille. Kun sovellus kasvaa ja komponentteja on useita tasoja, propseja joudutaan ketjuttamaan usean komponentin läpi tekniikalla, jota kutsutaan **prop drilling**:iksi. Tiedot pitää välittää propseina jokaisen komponentin läpi vaikka välikomponentit eivät itse tarvitsisikaan kyseistä tietoa. Tämä tekee sovelluksen ylläpidettävyydestä ja lähdekoodin seuraamisesta vaikeampaa.
+
+Context API ratkaisee muun muassa tällaisia ongelmia. Kontekstin avulla sovelluksen tila määritellään yhdessä paikassa (ns. Provider-komponentti), ja mikä tahansa lapsikomponentti voi lukea sen suoraan mistä tahansa.
+
+Context API:n käyttö koostuu kolmesta osasta:
 
 | Osa | Kuvaus |
 |-----|--------|
-| `createContext()` | Funktio, joka luo kontekstiobjektin |
-| `Provider` | Komponentti, joka kääritään sovelluksen ympärille ja tarjoaa kontekstin arvon |
-| `use()` | Hook, jolla komponentti lukee kontekstin arvon (React 19) |
+| `createContext()` | Funktio, joka luo kontekstiobjektin. Käytännössä tämä on vain nimi, johon kontekstin sisältämät tiedot tallennetaan, ja johon viittaamalla niihin päästään käsiksi. |
+| `Provider` | Kontekstista luotu React-komponentti, joka "kääritään" koko sovelluksen tai rajatun sovelluksen osan ympärille. Provider tarjoaa kontekstin sisältämät tiedot sen sisältämille komponenteille. |
+| `useContext()` | Hook, jolla voidaan lukea kontekstin sisältämät tiedot. |
 
-### Provider
+### 1.2 Provider
 
-**Provider** on tavallinen React-komponentti, joka kääritään sovelluksen (tai sen osan) ympärille. Provider sisältää sovelluksen tilamuuttujat (`useState`), metodit ja sivuvaikutukset (`useEffect`). Se välittää nämä lapsikomponenteille `value`-propsin kautta.
+**Provider** on tavallinen React-komponentti, joka kääritään sovelluksen (tai sen osan) ympärille. Provider sisältää sille määritellyt sovelluksen "globaalit" tilamuuttujat (`useState`), metodit ja "sivuvaikutukset" (`useEffect`). Se välittää nämä lapsikomponenteille `value`-propsin kautta.
 
+**Esimerkki TehtavaProviderin käärimisestä koko sovelluksen ympärille**:
 ```tsx
 <TehtavaProvider>
   <App />       {/* App ja kaikki sen lapsikomponentit voivat lukea kontekstin */}
 </TehtavaProvider>
 ```
 
-Kaikki Provider-komponentin sisällä olevat komponentit voivat käyttää kontekstin arvoja. Providerin ulkopuolella olevat komponentit eivät pääse kontekstiin käsiksi.
+Kaikki Provider-komponentin sisällä olevat komponentit voivat käyttää kontekstin tietoja riippumatta siitä, kuinka syvällä tasolla ne ovat. Esimerkiksi yllä olevassa esimerkissä App-komponentti voi sisältää rinnakkain useamman lapsikomponentin, jotka kaikki pääsevät Providerin kontekstitietoihin käsiksi, samoin näiden alla olevat lapsikomponentit. Providerin ulkopuolella olevat komponentit eivät pääse kontekstiin käsiksi.
 
-### React 19:n `use`-hook
+Tämä tulee ottaa huomioon React-sovelluksen tilanhallintaa suunnittelussa, mille tasolle Provider sijoitetaan ja mitä tietoja yksittäinen Provider tarjoaa. Sovelluksen jokaista tilatietoa, metodia tai efektiä ei tarvitse tarjota samasta Providerista samalla tasolla, vaan eri toimintoihin liittyviä tietoja voidaan myös pilkkoa omiin pienempiin konteksteihinsa, jotka annetaan vain niitä tarvitseville komponenteille. Tässä demossa kuitenkin luodaan vain yksi Context Provider kaikille tehtävälista-sovelluksen tehtäville ja niiden käsittelylle.
 
-React 19 tuo uuden `use`-hookin, joka korvaa aiemman `useContext`-hookin. Toiminta on sama: hook lukee kontekstin arvon lähimmästä ylätason Providerista.
+### 1.3 `useContext`-hook
+
+`useContext` on Reactin hook, joka lukee kontekstin arvon lähimmästä ylätason Providerista:
 
 ```tsx
-// Vanha tapa (React 18 ja aiemmat)
 const { tehtavat } = useContext(TehtavaContext);
-
-// Uusi tapa (React 19)
-const { tehtavat } = use(TehtavaContext);
 ```
 
-Kontekstin arvosta poimitaan halutut ominaisuudet **destrukturoinnilla** (aaltosulkeet). Jokainen komponentti ottaa kontekstista vain ne tiedot ja metodit, joita se tarvitsee.
+Kontekstin arvosta poimitaan halutut ominaisuudet **destrukturoinnilla**/purkamisella käyttäen aaltosulkeita. Jokainen komponentti ottaa kontekstista vain ne tiedot ja metodit, joita se tarvitsee. Yllä olevassa koodinpätkässä `TehtavaContext`:sta puretaan vain `tehtavat`-tilamuuttuja käyttöön. Alla on toinen esimerkki kontekstin purkamisesta, jossa otetaan `lisaysDialogi`, `setLisaysDialogi` ja `lisaaTehtava` käyttöön lapsikomponentissa.
 
-### Material UI (MUI)
+```tsx
+// Kontekstin tuonti
+import { TehtavaContext } from "../context/TehtavaContext";
 
-**Material UI** on React-komponenttikirjasto, joka tarjoaa valmiita käyttöliittymäkomponentteja Googlen Material Design -suunnittelujärjestelmän mukaisesti. Demossa käytetään MUI:n komponentteja kuten `Button`, `Dialog`, `List`, `Typography`, `Container` ja `Stack`.
+// Kontekstin purkaminen
+const { lisaysDialogi, setLisaysDialogi, lisaaTehtava } =
+    useContext(TehtavaContext);
 
-MUI asennetaan npm-pakettina yhdessä Emotion-tyylimoottorin, Roboto-fontin ja ikonipaketin kanssa.
+// Kutsutaan kontekstista purettua funktiota...
+lisaaTehtava();
+```
 
-### Demosovellus
+### 1.4 Tiivistelmä demosovelluksen aiheesta
 
-Demossa rakennetaan tehtävälista-sovellus, jossa React-asiakassovellus kommunikoi Express REST API -palvelimen kanssa. Sovelluksen tila hallitaan kokonaan Context API:n avulla yhdessä kontekstitiedostossa. Jokainen käyttöliittymäkomponentti lukee tarvitsemansa tiedot ja metodit suoraan kontekstista `use`-hookilla.
+Demossa rakennetaan tehtävälista-sovellus, jossa React-asiakassovellus kommunikoi Express REST API -palvelimen kanssa. Sovelluksen tila hallitaan kokonaan Context API:n avulla yhdessä kontekstitiedostossa. Jokainen käyttöliittymäkomponentti lukee tarvitsemansa tiedot ja metodit suoraan kontekstista `useContext`-hookilla.
 
 Palvelinsovellus on toteutettu valmiiksi `server/`-kansioon. Se tarjoaa kaksi REST API -reittiä:
 
@@ -78,25 +90,26 @@ Palvelin käynnistyy porttiin `3008` ja asiakassovellus porttiin `3000`.
 
 ## 2. Demosovelluksen rakentuminen vaihe vaiheelta
 
+Seuraava ohjeistus neuvoo demosovelluksen rakentumisen vaihe vaiheelta. Tarkoituksena on pelkän valmiin koodiesimerkin lisäksi havainnollistaa, missä vaiheessa mikäkin sovelluksen ominaisuus rakennetaan ja liitetään muuhun sovelluksen kulkuun.
+
 ### Vaihe 1: Projektin luominen
 
-Luodaan uusi Vite + React + TypeScript -projekti `client`-kansioon. Komento ajetaan `demo08/`-kansion juuresta:
+Jos aloitat kokonaan tyhjästä projektista, asiakassovellus (client) ja palvelin (server) kannattaa luoda omiin alikansioihinsa. Oletetaan, että projektin juureen on jo luotu palvelin kansioon `/server`. Luodaan projektin juureen samalle tasolle uusi Vite + React + TypeScript -projekti `client`-kansioon. Komento ajetaan kansion juuresta komentokehotteessa:
 
 ```bash
+# Luodaan Vite-kehitysprojekti kansioon client nykyiseen sijaintiin käyttäen pohjana Vite:n React-TypeScript -pohjaa
 npm create vite@latest client -- --template react-ts
 ```
 
-Siirrytään projektin kansioon:
+Seuraa komentokehotteen ohjeita oletusasetuksilla. Vite luo valmiin projektirungon, johon sisältyy React, TypeScript ja kehityspalvelin. Kun asennus on valmis, siirrytään projektin kansioon:
 
 ```bash
 cd client
 ```
 
-Vite luo valmiin projektirungon, johon sisältyy React, TypeScript ja kehityspalvelin.
+### Vaihe 2: Material UI -riippuvuuksien asentaminen
 
-### Vaihe 2: Riippuvuuksien asentaminen
-
-Asennetaan Material UI ja siihen liittyvät paketit:
+Ohjeistukset pohjautuvat [Material UI:n dokumentaatioon](https://mui.com/material-ui/getting-started/installation/ "https://mui.com/material-ui/getting-started/installation/"). Asennetaan Material UI ja siihen liittyvät paketit:
 
 ```bash
 npm install @mui/material @emotion/react @emotion/styled @fontsource/roboto @mui/icons-material
@@ -110,7 +123,7 @@ npm install @mui/material @emotion/react @emotion/styled @fontsource/roboto @mui
 | `@fontsource/roboto` | Roboto-fontti, jota MUI:n typografia käyttää |
 | `@mui/icons-material` | Material Design -ikonit React-komponentteina |
 
-### Vaihe 3: Vite-konfiguraatio
+### Vaihe 3: Konfiguroidaan Vite-kehityspalvelimen portti
 
 Muokataan `vite.config.ts` ja asetetaan kehityspalvelimen portti:
 
@@ -128,115 +141,95 @@ export default defineConfig({
 
 Portti `3000` on sama, jonka palvelinsovelluksen CORS-asetukset sallivat. Jos porttia muutetaan, palvelimen CORS-asetus on päivitettävä vastaavasti.
 
-### Vaihe 4: index.html
+### Vaihe 4: Sovelluksen kontekstin luominen (TehtavaContext.tsx)
 
-Muokataan projektin juuressa olevan `index.html`-tiedoston otsikko:
+Luodaan seuraavaksi React-asiakassovelluksemme ydin, eli kontekstitiedosto (`TehtavaContext.tsx`), joka hallitsee sovelluksen tehtävien tilaa (tyypit, tilamuuttujat, funktiot, palvelinkutsut). Tämä on demon tärkein tiedosto, koska koko sovelluksen tila hallitaan täällä.
 
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Demo 8</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
-```
+Luodaan asiakassovellukseen `client` kansio `/src/context/` ja sinne tiedosto `TehtavaContext.tsx`. Älä siis luo uutta `/src`-kansiota, vaan luo sen alle kontekstia varten oma alikansio.
 
-### Vaihe 5: Kontekstin luominen (TehtavaContext.tsx)
+#### 4.1 Kontekstin tarvitsemat importit
 
-Tässä vaiheessa luodaan sovelluksen ydin: kontekstitiedosto, joka sisältää tyyppimäärittelyt, tilamuuttujat, metodit ja palvelinyhteyden. Tämä on demon tärkein tiedosto, koska koko sovelluksen tila hallitaan täällä.
-
-Luodaan kansio `src/context/` ja sinne tiedosto `TehtavaContext.tsx`.
-
-**Importit**
+Aloitetaan tuomalla kontekstiin kaikki tarvittavat Reactin ominaisuudet:
 
 ```tsx
-import { createContext, useEffect, useRef, useState } from "react";
-import type { ReactNode, Dispatch, SetStateAction } from "react";
+import React, { createContext, useEffect, useRef, useState } from "react";
 ```
 
-`import type` -syntaksilla tuodaan tyypit, joita käytetään vain TypeScript-tyyppimäärityksissä. Ne eivät päädy lopulliseen JavaScript-koodiin. Ajonaikaisessa koodissa käytettävät funktiot (`createContext`, `useEffect` jne.) tuodaan normaalilla `import`-lauseella.
+#### 4.2 Tyyppimäärittely
 
-**Tyyppimäärittelyt**
-
-Määritellään tehtävän rakenne ja kontekstin tarjoamat ominaisuudet:
+Konteksti (`TehtavaContext.tsx`) nimensämukaisesti hallitsee sovelluksessa käsiteltäviä tehtävä-objekteja. Tehtäväobjekti sisältää tehtävän tunnisteen, nimen ja suorituksen tilan. Tehtävät tallennetaan palvelimelle näillä tiedoilla, josta ne myös haetaan takaisin asiakassovellukseen sessioiden aikana. Määritellään tehtävän rakenne:
 
 ```tsx
 export interface Tehtava {
-  id: string;
+  id: string; // Tehtävän yksilöivä tunniste. Tällä kertaa tunnisteeseen käytetään automaattisesti generoitavia UUID-merkkijonoja
   nimi: string;
   suoritettu: boolean;
 }
-
-export interface PoistoDialogi {
-  tehtava: Tehtava;
-  auki: boolean;
-}
-
-export interface TehtavaContextType {
-  tehtavat: Tehtava[];
-  setTehtavat: Dispatch<SetStateAction<Tehtava[]>>;
-  lisaysDialogi: boolean;
-  setLisaysDialogi: Dispatch<SetStateAction<boolean>>;
-  poistoDialogi: PoistoDialogi;
-  setPoistoDialogi: Dispatch<SetStateAction<PoistoDialogi>>;
-  lisaaTehtava: (uusiTehtava: Tehtava) => void;
-  poistaTehtava: (id: string) => void;
-  vaihdaSuoritus: (id: string) => void;
-}
 ```
 
-`Tehtava` kuvaa yksittäisen tehtävän rakenteen. `PoistoDialogi` yhdistää poistodialogin tilan (auki/kiinni) ja poistettavan tehtävän tiedot samaan objektiin. `TehtavaContextType` määrittelee kaikki ominaisuudet ja metodit, jotka konteksti tarjoaa muille komponenteille. `Dispatch<SetStateAction<...>>` on `useState`-hookin palauttaman setter-funktion tyyppi.
+`Tehtava` kuvaa yksittäisen tehtävän rakenteen: jokaisella tehtävällä on yksilöllinen tunniste, nimi ja tieto siitä, onko se suoritettu.
 
-**Kontekstin luominen**
+#### 4.3 Kontekstin luominen
+
+Konteksti luodaan itse kontekstitiedoston sisällä. Tässä siis kerrotaan Reactille, että luo uusi konteksti tähän tiedostoon, josta se voidaan sitten viedä muualle sovelluksen komponentteihin. Yksinkertaisuuden vuoksi demon konteksti tyypitetään yleisellä tasolla `React.Context`:iksi, ilman tarkennusta (any-tyyppi). Konteksti luodaan `createContext()`-metodilla, jonka arvoksi määritetään aluksi `undefined`.
 
 ```tsx
-export const TehtavaContext = createContext<TehtavaContextType>(null!);
+export const TehtavaContext: React.Context<any> = createContext(undefined);
 ```
 
-`createContext` luo kontekstiobjektin, jota käytetään sekä Provider-komponentissa (`TehtavaContext.Provider`) että lapsikomponenteissa (`use(TehtavaContext)`). `null!` on oletusarvo: `null` tarkoittaa, että kontekstilla ei ole arvoa ennen kuin Provider tarjoaa sen, ja `!` (non-null assertion) kertoo TypeScriptille, että arvo on aina saatavilla ajonaikaisesti. Tämä on turvallista, koska Provider kääritään sovelluksen ylimmälle tasolle.
+`createContext` luo kontekstiobjektin. `undefined` on oletusarvo, jota käytetään silloin, kun komponentti yrittää lukea kontekstia ilman Provideria. Käytännössä tätä ei pitäisi tapahtua, koska Provider kääritään sovelluksen ylimmälle tasolle.
 
-**Provider-komponentti**
+Yllä luotu kontekstiobjekti sisältää kaksi asiaa:
+- `TehtavaContext.Provider`: Komponentti, jolla kontekstin arvo tarjotaan eteenpäin. Tämä siis kääritään kontekstia käyttävien lapsikomponenttien/koko sovelluksen ympärille.
+- Itse kontekstiobjekti, joka annetaan `useContext`-hookille kontekstin lukemista varten. Kontekstiobjekti sisältää varsinaiset kontekstin tiedot.
+
+Meillä on siis määritettynä yhteen kontekstitiedostoon `TehtavaContext.tsx` kontekstin tarjoaja (Provider, `TehtavaContext.Provider`) ja kontekstin tiedot `useContext`-hook.
+
+#### 4.4 Provider-komponentin määrittely
+
+Määritellään seuraavaksi kontekstin tarjoaja (Provider). Kontekstin tarjoaja kääritään muiden sovelluksen komponenttien ympärille, eli se vastaanottaa propseina muita React-komponentteja (`children: React.ReactNode`).
 
 ```tsx
 interface Props {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const TehtavaProvider = ({ children }: Props) => {
+export const TehtavaProvider = ({ children }: Props) => {...}
 ```
 
-`TehtavaProvider` on funktiokomponentti, joka vastaanottaa `children`-propsin. `children` viittaa kaikkiin komponentteihin, jotka sijoitetaan `<TehtavaProvider>`-tagin sisälle. `ReactNode` on TypeScript-tyyppi, joka kattaa kaikenlaiset React-elementit.
+`TehtavaProvider` on funktiokomponentti, joka vastaanottaa `children`-propsin. `children` viittaa kaikkiin komponentteihin, jotka sijoitetaan `<TehtavaProvider>`-tagin sisälle. `React.ReactNode` on TypeScript-tyyppi, joka kattaa kaikenlaiset React-elementit.
 
-**Tilamuuttujat**
+Huomaa, että `TehtavaProvider` ei poikkea ollenkaan Reactin muista funktiokomponenteista. Se on määritelty nuolifunktiona vakion arvoksi `const TehtavaProvider = () => {...}`. Nuolifunktion parametrit (eli tiedot, jotka menevät kaarisulkeiden `()` väliin, sisältävät komponentin propsit). Nuolen jälkeiset aaltosulkeet `{}` määrittävät funktion koodilohkon.
 
-Providerin sisälle määritellään sovelluksen tilamuuttujat:
+#### 4.5 Kontekstin hallitsemat tilamuuttujat
+
+Kun kontekstin tarjoajan runko on alustettu, sen sisään voidaan alkaa rakentamaan kontekstin käsittelemiä ominaisuuksia ja toimintoja. Määritellään Provider-funktion sisälle aluksi sovelluksen tilamuuttujat. Nämä tulevat siis `TehtavaProvider`-nuolifunktion sisältämään koodilohkoon, aaltosulkeiden `{}` väliin:
 
 ```tsx
   const haettu = useRef(false);
 
   const [lisaysDialogi, setLisaysDialogi] = useState<boolean>(false);
-  const [poistoDialogi, setPoistoDialogi] = useState<PoistoDialogi>({
-    tehtava: { id: "", nimi: "", suoritettu: false },
+  const [poistoDialogi, setPoistoDialogi] = useState<any>({
+    tehtava: {},
     auki: false,
   });
 
   const [tehtavat, setTehtavat] = useState<Tehtava[]>([]);
 ```
 
+- `const haettu = useRef(false);`: Viittaus siihen, onko palvelimelle tallennettavat tehtävät haettu asiakassovellukseen. Tavallinen boolean-arvo.
+- 
+
 | Muuttuja | Tyyppi | Tarkoitus |
 |----------|--------|-----------|
-| `haettu` | `useRef<boolean>` | Estää tehtävien hakemisen kahdesti (React StrictMode kutsuu `useEffect`-hookia kahdesti kehitystilassa) |
-| `lisaysDialogi` | `boolean` | Lisäysdialogin näkyvyys (true = auki) |
-| `poistoDialogi` | `PoistoDialogi` | Poistodialogin tila ja poistettavan tehtävän tiedot |
-| `tehtavat` | `Tehtava[]` | Kaikki tehtävät taulukossa |
+| `haettu` | `useRef(false)` | Viittaus siihen, onko palvelimelle tallennettavat tehtävät haettu asiakassovellukseen. Tavallinen boolean-arvo. |
+| `lisaysDialogi` | `boolean` | Lisäysdialogin näkyvyyttä hallitseva tilamuuttuja (true = auki). Itse lisäysdialogi luodaan myöhemmin. |
+| `poistoDialogi` | `any` | Poistodialogin näkyvyyden tila ja poistettavan tehtävän tiedot. Poistodialogi luodaan myös myöhemmin. |
+| `tehtavat` | `Tehtava[]` | Tilamuuttuja palvelimelta haettavien tehtävien tallentamiselle. Tehtävät tallennetaan `Tehtava`-rajapinnan muotoisia objekteja sisältävään taulukkoon (`array`). |
 
-**Tehtävien hallintametodit**
+#### 4.6 Tehtävien hallintametodit
+
+Lisätään seuraavaksi heti `TehtavaProvider`-komponentin tilamuuttujien alle tehtävien käsittelyyn liittyvät funktiot. Tehtävälistassa luonnollisesta halutaan olevan mahdollisuus uusien tehtävien lisäämiseen, tehtävien poistamiseen ja yksittäisen tehtävän suorituksen vaihtamiseen.
 
 ```tsx
   const lisaaTehtava = (uusiTehtava: Tehtava): void => {
@@ -258,13 +251,20 @@ Providerin sisälle määritellään sovelluksen tilamuuttujat:
   };
 ```
 
-`lisaaTehtava` luo uuden taulukon spread-operaattorilla (`...`), jossa vanhat tehtävät säilyvät ja uusi tehtävä lisätään loppuun. `vaihdaSuoritus` käy `map`-metodilla läpi kaikki tehtävät ja kääntää valitun tehtävän `suoritettu`-arvon päinvastaiseksi. Muut tehtävät palautetaan sellaisinaan. `poistaTehtava` suodattaa `filter`-metodilla pois tehtävän, jonka `id` vastaa annettua arvoa.
+| Funktio | Kuvaus |
+| --- | --- |
+| `lisaaTehtava` | Ottaa vastaan uuden `Tehtava`-muotoisen objektin ja tallentaa sen kontekstin määrittelemään `tehtava`-tilamuuttujaan. Koska `tehtavat` on taulukko, uuden tehtävän lisäämiseksi taulukosta on ensiksi luotava kopio spread-operaattorilla (`...tehtavat`) ja uusi tehtävä lisätään taulukon jatkoksi. |
+| `vaihdaSuoritus` | Ottaa vastaan käyttöliittymässä valitun tehtävän `id`-arvon. `tehtavat`-taulukossa olevan tiedon päivittämiseen voidaan käyttää TypeScript-taulukon `map`-metodia. Metodin callback ottaa vastaan argumenttina yksittäisen `tehtava`-objektin joka kierroksella, ja tekee vertailuoperaation kyseisen kierroksen `tehtava`-objektin `id`-arvon ja  `vaihdaSuoritus`-funktioon annetun argumentin `id` välillä. Vertailuoperaatio tehdään ternary operaationa, eli kysymysmerkin `?` jälkeinen osa suoritetaan, kun vertailu on true (eli `tehtava.id` ja `id` vastaavat). Tässä tehdään taas taulukon kopiointi "spreadauksella" ja vaihdetaan aktiivisen tehtävän `suoritettu`-kentän arvo päinvastaiseksi (jos oli suoritettu --> ei suoritettu, ja toisinpäin). Jos vertailu ei tällä kierroksella tuottanut tulosta, niin palautetaan vain kyseinen tehtävä takaisin ja jatketaan seuraavaan kierrokseen. Kun `tehtavat.map()` on käyty läpi, `paivitetut`-vakio sisältää uuden tehtävälistan, jossa valitun tehtävän suoritus on vaihdettu. Lopuksi päivitetyllä tehtävälistalla kutsutaan `tallennaTehtavat()`-funktiota, joka lähettää tiedon eteenpäin palvelimelle. Katsotaan tätä myöhemmin. |
+| `poistaTehtava` | Ottaa vastaan `id`-argumentin samoin kuin `vaihdaSuoritus`. Tässä funktiossa tehdään vain yksinkertainen tehtävien tallennus suodatetulla listalla, joka sisältää kaikki muut tehtävät paitsi argumenttina annettua `id`-arvoa vastaavan tehtävän. Koska palvelin päivittää tehtävien tiedot aina kokonaisena listana eikä yksi tehtävä kerrallaan, on poisto helpoin tehdä vain lähettämällä palvelimelle lista, josta on suodatettu pois valittu tehtävä. Silloin käytännössä poistamme tehtävän, koska tallennettu tehtävälista ei sisältänyt valittua tehtävää ja se ylikirjoittaa kaiken aikaisemman tiedon palvelimelta. |
 
 Kaikki kolme metodia kutsuvat lopuksi `tallennaTehtavat`-funktiota, joka lähettää päivitetyn listan palvelimelle.
 
-**Palvelinyhteys**
+#### 4.7 Yhteyden muodostaminen palvelimelle HTTP-kutsuilla käyttäen `fetch`-metodia
+
+Nyt kun tehtäviin liittyville tiedoille on määritetty tilamuuttujat ja tehtävälistaa käsittelevät metodit, on hyvä aika määrittää varsinaiset palvelinkutsun funktiot Provider-komponenttiin. Samoin kuin edellisessä vaiheessa, alla olevat funktiot kirjoitetaan suoraan edellisten perään `TehtavaProvider`-komponentin sisälle. Toinen funktioista tallentaa tehtävät lähettämällä koko tehtävälistan `POST`-metodilla JSON-muodossa palvelimen REST API -reittiin. Haun funktio tekee yksinkertaisen `GET`-pyynnön palvelimelle ja saa vastauksena palvelimella olevat tehtävät yhtenä listana, joka tallennetaan kontekstin tarjoajan eli `TehtavaProvider`-komponentin `tehtavat`-tilamuuttujaan.
 
 ```tsx
+  // Kaikkien tehtävien lähettäminen palvelimelle POST-metodilla
   const tallennaTehtavat = async (tehtavat: Tehtava[]) => {
     await fetch("http://localhost:3008/api/tehtavalista", {
       method: "POST",
@@ -277,6 +277,7 @@ Kaikki kolme metodia kutsuvat lopuksi `tallennaTehtavat`-funktiota, joka lähett
     setTehtavat([...tehtavat]);
   };
 
+  // Kaikkien tehtävien hakeminen palvelimelta GET-metodilla
   const haeTehtavat = async () => {
     const yhteys = await fetch("http://localhost:3008/api/tehtavalista");
     const data = await yhteys.json();
@@ -284,11 +285,18 @@ Kaikki kolme metodia kutsuvat lopuksi `tallennaTehtavat`-funktiota, joka lähett
   };
 ```
 
-`tallennaTehtavat` lähettää koko tehtävälistan POST-pyynnöllä palvelimelle JSON-muodossa ja päivittää samalla sovelluksen tilamuuttujan. `haeTehtavat` hakee tehtävät GET-pyynnöllä palvelimelta ja asettaa ne tilamuuttujaan.
+Alla oleva taulukko kuvaa yllä olevat funktiot hieman tarkemmin. Koska nyt tehdään verkon yli pyyntöjä palvelinsovellukseen, jossa parhaassa tapauksessa on vielä tietokanta käytössä, niin pyynnön tekemisen ja vastauksen saamisen välillä voi kulua *n* määrä millisekunteja aikaa. Tämän takia pyyntöjä tekevät funktiot on määriteltävä asynkroonisiksi avainsanalla `async` ja pyynnön tekevä kutsu käsketään odottamaan `await` vastausta palvelimelta `fetch`-metodin suorittamaan pyyntöön. Tämä on siis ihan peruskäytäntö kaikessa ohjelmoinnissa, jossa voidaan olettaa funktion kutsun ja sen käsittelyn välillä tapahtuvan viivettä. Kaikki verkon yli tapahtuvat kyselyt ja etenkin tietokantaoperaatiot ovat aina jonkin verran viiveellisiä johtuen muun muassa verkon nopeudesta, palvelinkoneen tehoista, jne. Asynkroonisia funktioita on toki käsitelty jo aiemmissa materiaaleissa, mutta hyvä muistutella kuitenkin, miksi näitä välillä käytetään. Sitten kun tehdään sovelluksen sisäisiä funktioita ja operaatioita, niin asiat tapahtuvat yleensä viiveettä, jolloin asynkroonisuutta ei tarvita, kuten edellisen vaiheen funktioissa.
+
+| Funktio | Kuvaus |
+| --- | --- |
+| `tallennaTehtavat` | Funktio ottaa vastaan argumenttina kontekstin koko tehtävälistan, koska se lähetetään palvelimelle, joka käsittelee tehtävälistaa kokonaisuudessaan. `fetch`-metodi ottaa vastaan HTTP-pyynnöstä riippuen yhden tai kaksi argumenttia. Ensimmäinen argumentti on pyynnön osoite, tässä tapauksessa palvelimen REST API:n reitti `/api/tehtavalista`. Koska tässä funktiossa tallennetaan tietoa palvelimelle, se on lähetettävä mielellään POST-pyyntönä, jossa tiedot on koodattu osaksi pyynnön asetuksen tietoja `body`-osaan. `fetch`-metodin toisena argumenttina annetaankin HTTP-pyynnön asetukset JSON-muodossa. Asetukset sisältävät muun muassa HTTP-metodin määrityksen `method: "POST"`, otsikkotiedot `headers`, joka on myös JSON-muotoinen objekti `{ "Content-Type": "application/json" }`, ja lopuksi annetaan pyynnön varsinainen tietosisältö `body`-osassa, joka on tässä tapauksessa JSON-merkkijonoksi muunnettu kontekstin `tehtavat`-taulukko `body: JSON.stringify({ tehtavat })`. Huomaa, että `stringify`-metodin argumentti on objektimuodossa (aaltosulkeet, joiden sisälle taulukko sijoitetaan). Lopuksi vielä päivitetään kontekstin tehtävät vastaamaan lähetettyä tehtävälistaa. |
+| `haeTehtavat` | Tämä funktio suorittaa yksinkertaisen `GET`-pyynnön palvelimelle, eikä tarvitse argumentteja. Funktiossa muodostetaan vakio `yhteys`, johon sijoitetaan `fetch`-metodilla suoritetun pyynnön vastauksena saamat tehtävät. Palvelin ottaa `GET`-pyynnön vastaan ja palauttaa vastauksena JSON-objektin muotoisen merkkijonon, joka tallennetaan `yhteys`-vakioon. Tämän jälkeen merkkijonon muodossa oleva tehtävälista-data muunnetaan TypeScriptin ymmärtämään muotoon JSON-objektiksi, joka on siis TypeScript-taulukko `array` sisältäen yksittäisiä `tehtava`-muotoisia JSON-objekteja. Lopuksi kontekstin `tehtavat`-tilamuuttujan sisältämä tehtävälista päivitetään vastaamaan pyynnössä palvelimelta saatua tehtävälistaa. |
 
 Palvelimen osoite `http://localhost:3008` on kovakoodattu, koska kyseessä on kehitysympäristö. Tuotantosovelluksessa osoite luettaisiin ympäristömuuttujasta.
 
-**Tehtävien haku käynnistyessä**
+#### 4.8 Tehtävien haku asiakassovelluksen käynnistyessä
+
+Lopuksi ennen `TehtavaProvider`-komponentin JSX-palautusosaa, määritetään vielä funktion efektit/sivuvaikutukset, jotka ajetaan joko automaattisesti komponentin aktivoituessa tai mahdollisten seurattavien riippuvuuksien (`useEffect() => {}, [riippuvuudet]);`) päivittyessä. Tässä tapauksessa seurattavia riippuvuuksia ei ole ja `useEffect()` suoritetaan kerran sovelluksen käynnistyessä.
 
 ```tsx
   useEffect(() => {
@@ -302,9 +310,13 @@ Palvelimen osoite `http://localhost:3008` on kovakoodattu, koska kyseessä on ke
   }, []);
 ```
 
-`useEffect` suorittaa `haeTehtavat`-funktion, kun Provider renderöidään ensimmäisen kerran. Tyhjä riippuvuustaulukko (`[]`) tarkoittaa, että efekti ajetaan vain kerran. `useRef`-viittaus `haettu` estää kaksinkertaisen haun: React StrictMode renderöi komponentit kahdesti kehitystilassa, joten ilman tarkistusta tehtävät haettaisiin turhaan kahteen kertaan.
+`useEffect` tarkistaa ensin, mikä on `haettu`-viittauksen tila (`true`/`false`). `useEffect` suorittaa `haeTehtavat`-funktion, kun Provider renderöidään ensimmäisen kerran. Tyhjä riippuvuustaulukko (`[]`) tarkoittaa, että efekti ajetaan vain kerran. `useRef`-viittaus `haettu` estää kaksinkertaisen haun: React StrictMode renderöi komponentit kahdesti kehitystilassa, joten ilman tarkistusta tehtävät haettaisiin turhaan kahteen kertaan. Kun tehtävät on haettu, `useEffect()` palauttaa callback-funktion, jossa `haettu`-tieto asetetaan `true`:ksi.
 
-**Providerin palautusarvo**
+Tämän osion ainut tehtävä on siis vain hakea tehtävät palvelimelta kun asiakassovellus käynnistyy ensimmäisen kerran.
+
+#### 4.9 Providerin palautus
+
+Provider-komponentin viimeinen osa on varsinainen React-sovelluksen palautus, joka tarjotaan Providerin lapsikomponenteille. Palautus on Reactin JSX-merkkausta, jossa määritellään Provider-komponentin rakenne. Provider toimii muiden komponenttien käärijänä, jolloin sen avaavan ja sulkevan tunnisteen (`TehtavaContext.Provider`) väliin sijoitetaan komponentin propsina annetut lapsikomponentit.
 
 ```tsx
   return (
@@ -327,13 +339,16 @@ Palvelimen osoite `http://localhost:3008` on kovakoodattu, koska kyseessä on ke
 };
 ```
 
-`TehtavaContext.Provider` on kontekstin tarjoajakomponentti. `value`-propsi sisältää kaikki tilamuuttujat, setterit ja metodit, jotka lapsikomponentit voivat käyttää `use`-hookilla. `{children}` renderöi kaikki Provider-komponentin sisälle sijoitetut komponentit.
+`TehtavaContext.Provider` on kontekstin tarjoajakomponentti. `value`-propsi sisältää kaikki tilamuuttujat, setterit ja metodit, jotka lapsikomponentit voivat käyttää `useContext`-hookilla. `{children}` renderöi kaikki Provider-komponentin sisälle sijoitetut komponentit.
 
-> **Huomio:** Vain `value`-propsissa listatut ominaisuudet ovat käytettävissä muissa komponenteissa. Jos jokin tieto tai metodi puuttuu listasta, se ei näy kontekstissa.
+>[!warning]
+Vain `value`-propsissa listatut ominaisuudet ovat käytettävissä muissa komponenteissa. Jos jokin tieto tai metodi puuttuu listasta, se ei näy kontekstissa.
 
-### Vaihe 6: Sovelluksen käynnistyspiste (main.tsx)
+Nyt demosovelluksen vaikein ja pisin yksittäinen vaihe on oikeastaan suoritettu. Ylläolevat vaihe 4:n alaosiot olivat tämän demon ydinasia Reactin Context API:n käyttöönotosta ja kontekstin tarjoajan muodostamisesta. Seuraavaksi luodaan asiakassovelluksen muut komponentit, luodaan näkymät ja perehdytään vielä kontekstin käyttöön lapsikomponenteissa `useContext`-hookilla.
 
-Muokataan `src/main.tsx`:
+### Vaihe 5: Sovelluksen käynnistyspiste (main.tsx)
+
+Vielä ennen kontekstin käyttämistä, kontekstin tarjoaja eli `TehtavaProvider`, pitää määrittää käyttöönotetuksi. Koska konteksti halutaan tarjota koko sovelluksen kaikkiin komponentteihin, se on helpoin kääriä React-sovelluksen käynnistyspisteessä eli `main.tsx`-tiedostossa `App`-komponentin ympärille. Muokataan `src/main.tsx`:
 
 ```tsx
 import { StrictMode } from "react";
@@ -355,13 +370,13 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
-`TehtavaProvider` kääritään `App`-komponentin ympärille. Tämä tarkoittaa, että `App` ja kaikki sen sisällä olevat komponentit voivat käyttää tehtävien kontekstia. Roboto-fonttien CSS-importit ovat MUI:n typografiaa varten, joka käyttää Roboto-fonttia oletuksena neljässä eri paksuudessa (300, 400, 500, 700).
+`TehtavaProvider` kääritään `App`-komponentin ympärille. Tämä tarkoittaa, että `App` ja kaikki sen sisällä olevat komponentit voivat käyttää tehtävien kontekstia. Roboto-fonttien CSS-importit ovat MUI:n typografiaa varten.
 
 Poistetaan myös Viten luomat oletustyylit `src/App.css` ja `src/index.css`, koska MUI hoitaa tyylityksen.
 
-### Vaihe 7: Otsikkokomponentti (Otsikko.tsx)
+### Vaihe 6: Otsikkokomponentti (Otsikko.tsx)
 
-Luodaan kansio `src/components/` ja sinne tiedosto `Otsikko.tsx`:
+Luodaan seuraavaksi sovelluksen otsikkokomponentti omaksi tiedostokseen. Samoin tehdään sovelluksen muille komponenteille. Kaikki komponentit kannattaa sijoittaa yhteen paikkaan asiakassovelluksen lähdekoodien kansiossa `/src`. Luodaan tämä alle uusi kansio `src/components/` ja sinne tiedosto `Otsikko.tsx` alla olevilla koodeilla:
 
 ```tsx
 import { Typography } from "@mui/material";
@@ -369,7 +384,7 @@ import { Typography } from "@mui/material";
 const Otsikko = () => {
   return (
     <>
-      <Typography variant="h5">Demo 8: Context API (use)</Typography>
+      <Typography variant="h5">Demo 8: Context API (useContext)</Typography>
       <Typography variant="h6" sx={{ marginTop: "10px" }}>
         Tehtävälista
       </Typography>
@@ -380,16 +395,16 @@ const Otsikko = () => {
 export default Otsikko;
 ```
 
-Komponentti näyttää sovelluksen otsikon MUI:n `Typography`-komponentilla. `variant`-propsi määrittää tekstin tyylin (h5 = otsikko, h6 = alaotsikko). `sx`-propsi on MUI:n tapa antaa inline-tyylejä CSS-objektina. `<>...</>` on Reactin **fragmentti**, joka ryhmittää elementtejä ilman ylimääräistä DOM-elementtiä.
+Komponentti näyttää sovelluksen otsikon MUI:n `Typography`-komponentilla. `variant`-propsi määrittää tekstin tyylin (h5 = otsikko, h6 = alaotsikko). `sx`-propsi on MUI:n tapa antaa inline-tyylejä CSS-objektina (tässä annetaan alaotsikolle vähän marginaalia). `<>...</>` on Reactin **fragmentti**, joka käärii muut elementit. React-komponenteissa return voi palauttaa vain yhden juuritason JSX-elementin, jonka takia kaikki komponentin sisältämät muut komponentit/elementit pitää kääriä joko tyhjän fragmentin sisään tai jonkun muun komponentin sisään.
 
-Tässä vaiheessa voidaan käynnistää kehityspalvelin ja tarkistaa, että sovellus latautuu selaimessa osoitteessa `http://localhost:3000`. Sovellus ei vielä näytä mitään hyödyllistä, koska `App.tsx` käyttää vielä Viten oletussisältöä.
+Tässä vaiheessa voidaan viimeistään käynnistää kehityspalvelin ja tarkistaa, että sovellus latautuu selaimessa osoitteessa `http://localhost:3000`. Sovellus ei vielä näytä mitään hyödyllistä, koska `App.tsx` käyttää vielä Viten oletussisältöä.
 
-### Vaihe 8: App-komponentti (App.tsx)
+### Vaihe 7: App-komponentti (App.tsx)
 
-Muokataan `src/App.tsx`:
+Luodaan seuraavaksi sovelluksen päänäkymä eli `App`-komponentti, joka käärii sisäänsä kaikki muut sovelluksen renderöitävät komponentit. Muokataan `src/App.tsx`:
 
 ```tsx
-import { use } from "react";
+import { useContext } from "react";
 import { Button, Container, Stack } from "@mui/material";
 import Otsikko from "./components/Otsikko";
 import Tehtavalista from "./components/Tehtavalista";
@@ -397,7 +412,7 @@ import LisaaTehtava from "./components/LisaaTehtava";
 import { TehtavaContext } from "./context/TehtavaContext";
 
 const App = () => {
-  const { setLisaysDialogi } = use(TehtavaContext);
+  const { setLisaysDialogi } = useContext(TehtavaContext);
 
   return (
     <Container>
@@ -422,13 +437,16 @@ const App = () => {
 export default App;
 ```
 
-Tässä otetaan käyttöön React 19:n `use`-hook:
+>[!warning]
+Komponentti heittää nyt virheitä, koska kutsutaan sellaisia komponentteja (`Tehtavalista`, `LisaaTehtava`), joita ei ole vielä luotu. Tehdään ne seuraavissa vaiheissa.
+
+Tässä otetaan käyttöön myös React Context API:n `useContext`-hook:
 
 ```tsx
-const { setLisaysDialogi } = use(TehtavaContext);
+const { setLisaysDialogi } = useContext(TehtavaContext);
 ```
 
-`use(TehtavaContext)` lukee kontekstin arvon lähimmästä ylätason Providerista (joka on `main.tsx`:ssä). Destrukturoinnilla poimitaan vain `setLisaysDialogi`, koska App-komponentti tarvitsee kontekstista ainoastaan lisäysdialogin avaamisen.
+`useContext(TehtavaContext)` lukee kontekstin arvon lähimmästä ylätason Providerista (joka on `main.tsx`:ssä). Destrukturoinnilla poimitaan vain `setLisaysDialogi`, koska App-komponentti tarvitsee kontekstista ainoastaan lisäysdialogin avaamisen toiminnon.
 
 MUI-komponentit muodostavat sivun rakenteen:
 
@@ -438,14 +456,12 @@ MUI-komponentit muodostavat sivun rakenteen:
 | `Stack` | Pinoaa lapsikomponentit pystysuunnassa tasaisin välein (`spacing={2}`) |
 | `Button` | Painike, `variant="contained"` tekee siitä täytetyn (sininen tausta) |
 
-> **Huomio:** `Tehtavalista`- ja `LisaaTehtava`-komponentteja ei ole vielä luotu. Kehityspalvelin näyttää virheen, kunnes ne lisätään seuraavissa vaiheissa.
+### Vaihe 8: Tehtävälistan komponentti (Tehtavalista.tsx)
 
-### Vaihe 9: Tehtävälistan komponentti (Tehtavalista.tsx)
-
-Luodaan tiedosto `src/components/Tehtavalista.tsx`:
+Luodaan seuraavaksi varsinaisen tehtävälistan renderöivä komponentti. Luodaan tiedosto `src/components/Tehtavalista.tsx` alla olevilla koodeilla:
 
 ```tsx
-import { use } from "react";
+import { useContext } from "react";
 import CheckBoxOutlineBlank from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBox from "@mui/icons-material/CheckBox";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -461,12 +477,12 @@ import { TehtavaContext } from "../context/TehtavaContext";
 import type { Tehtava } from "../context/TehtavaContext";
 ```
 
-`TehtavaContext` tuodaan normaalilla `import`-lauseella, koska sitä käytetään `use`-hookin parametrina ajonaikaisesti. `Tehtava` tuodaan `import type` -lauseella, koska sitä käytetään vain tyyppimäärittelynä `map`-funktion parametrissa.
+`TehtavaContext` tuodaan normaalilla `import`-lauseella, koska sitä käytetään `useContext`-hookin parametrina ajonaikaisesti. `Tehtava` tuodaan `import type` -lauseella, koska sitä käytetään vain tyyppimäärittelynä `map`-funktion parametrissa. Lisätään seuraavaksi tiedostoon varsinainen `Tehtavalista`-komponentin rakenne.
 
 ```tsx
 const Tehtavalista = () => {
   const { tehtavat, setPoistoDialogi, vaihdaSuoritus } =
-    use(TehtavaContext);
+    useContext(TehtavaContext);
 
   return (
     <>
@@ -507,23 +523,24 @@ const Tehtavalista = () => {
 export default Tehtavalista;
 ```
 
-Kontekstista poimitaan kolme ominaisuutta:
+Kontekstista poimitaan kolme ominaisuutta `useContext`-hookilla:
 
 | Ominaisuus | Käyttö |
 |------------|--------|
-| `tehtavat` | Tehtävälista, joka iteroidaan `map`-metodilla |
-| `setPoistoDialogi` | Avaa poistodialogin ja välittää poistettavan tehtävän tiedot |
-| `vaihdaSuoritus` | Kääntää tehtävän suoritusmerkinnän (checkbox) |
+| `tehtavat` | Kontekstin ylläpitämä tehtävälista, joka on taulukko. Tämän komponentin palautuksessa, jossa muodostetaan komponentin rakenne, tehtävälista käydään läpi `map`-metodilla, jonka sisällä jokaisesta tehtävästä luodaan oma listaelementti. Jokainen listaelementti sisältää ikonipainikkeena roskakorin, joka kutsuu kontekstin poistodialogia. |
+| `setPoistoDialogi` | Avaa poistodialogin ja välittää poistettavan tehtävän tiedot. |
+| `vaihdaSuoritus` | Kääntää tehtävän suoritusmerkinnän (checkbox). |
 
 `tehtavat.map()` iteroi jokaisen tehtävän ja renderöi `ListItem`-komponentin. `key={idx}` on Reactin vaatima yksilöivä avain listaelementille. `secondaryAction` sijoittaa roskakorikuvakkeen (`DeleteIcon`) listaelementin oikeaan reunaan. `ListItemIcon` sisältää checkbox-kuvakkeen: `CheckBox` näytetään, kun tehtävä on suoritettu, ja `CheckBoxOutlineBlank`, kun se on suorittamatta. Ehdollinen renderöinti tapahtuu ternary-operaattorilla (`ehto ? tosi : epätosi`).
 
-`PoistaTehtava`-komponentti sijoitetaan listan jälkeen. Se renderöi MUI:n `Dialog`-komponentin, joka on oletuksena piilossa ja näytetään vasta, kun `poistoDialogi.auki` on `true`.
+`PoistaTehtava`-komponentti sijoitetaan listan jälkeen. Se renderöi MUI:n `Dialog`-komponentin, joka on oletuksena piilossa ja näytetään vasta, kun kontekstin `poistoDialogi.auki` on `true`.
 
-> **Huomio:** `PoistaTehtava`-komponenttia ei ole vielä luotu. Se lisätään vaiheessa 11.
+>[!warning]
+`PoistaTehtava`-komponenttia ei ole vielä luotu. Se lisätään vaiheessa 10.
 
-### Vaihe 10: Tehtävän lisäysdialogi (LisaaTehtava.tsx)
+### Vaihe 9: Tehtävän lisäysdialogi (LisaaTehtava.tsx)
 
-Luodaan tiedosto `src/components/LisaaTehtava.tsx`:
+Luodaan seuraavaksi komponentti tehtävän lisäämisen dialogille omaan tiedostoonsa. Luodaan tiedosto `src/components/LisaaTehtava.tsx` ja lisätään sinne seuraavat koodit:
 
 ```tsx
 import {
@@ -534,13 +551,13 @@ import {
   DialogTitle,
   TextField,
 } from "@mui/material";
-import { use, useRef } from "react";
+import { useContext, useRef } from "react";
 import { TehtavaContext } from "../context/TehtavaContext";
 import type { Tehtava } from "../context/TehtavaContext";
 
 const LisaaTehtava = () => {
   const { lisaysDialogi, setLisaysDialogi, lisaaTehtava } =
-    use(TehtavaContext);
+    useContext(TehtavaContext);
 
   const nimiRef = useRef<HTMLInputElement>(null);
 
@@ -588,9 +605,9 @@ Kontekstista käytetään kolmea ominaisuutta:
 
 | Ominaisuus | Käyttö |
 |------------|--------|
-| `lisaysDialogi` | Ohjaa MUI:n `Dialog`-komponentin `open`-propsia (true = dialogi näkyvissä) |
+| `lisaysDialogi` | Ohjaa MUI:n `Dialog`-komponentin `open`-propsia (true = dialogi näkyvissä). Sama kuin edellisen vaiheen poistonäkymässä. |
 | `setLisaysDialogi` | Sulkee dialogin asettamalla arvon `false`:ksi |
-| `lisaaTehtava` | Kontekstin metodi, joka lisää uuden tehtävän ja tallentaa sen palvelimelle |
+| `lisaaTehtava` | Kontekstin metodi, joka lisää uuden tehtävän ja tallentaa sen palvelimelle. Tämä funktio ohjelmoitiin vaiheessa 4 muiden kontekstin toimintojen kanssa. |
 
 **`useRef` lomakekentän lukemiseen**
 
@@ -598,15 +615,15 @@ Kontekstista käytetään kolmea ominaisuutta:
 
 **`crypto.randomUUID()`**
 
-Uudelle tehtävälle luodaan yksilöllinen tunniste selaimen sisäänrakennetulla `crypto.randomUUID()`-metodilla. Kaikki nykyaikaiset selaimet tukevat tätä, joten erillistä `uuid`-kirjastoa ei tarvita.
+Uudelle tehtävälle luodaan yksilöllinen tunniste selaimen sisäänrakennetulla `crypto.randomUUID()`-metodilla. Kaikki nykyaikaiset selaimet tukevat tätä.
 
 **MUI Dialog -komponenttirakenne**
 
 MUI:n dialogi koostuu neljästä osasta: `Dialog` (kehys), `DialogTitle` (otsikko), `DialogContent` (sisältö) ja `DialogActions` (painikkeet). `slotProps`-propsi asettaa dialogin kiinteästi sivun yläosaan CSS:llä. `fullWidth={true}` levittää dialogin koko säiliön levyiseksi.
 
-### Vaihe 11: Tehtävän poistodialogi (PoistaTehtava.tsx)
+### Vaihe 10: Tehtävän poistodialogi (PoistaTehtava.tsx)
 
-Luodaan tiedosto `src/components/PoistaTehtava.tsx`:
+Lopuksi luodaa vielä tehtävän poistamiselle varmistusdialogi, joka aukeaa tehtävän roskakori-ikonia painettaessa. Luodaan tämäkin omaan tiedostoon `src/components/PoistaTehtava.tsx`:
 
 ```tsx
 import {
@@ -617,12 +634,12 @@ import {
   Button,
   Typography,
 } from "@mui/material";
-import { use } from "react";
+import { useContext } from "react";
 import { TehtavaContext } from "../context/TehtavaContext";
 
 const PoistaTehtava = () => {
   const { poistoDialogi, setPoistoDialogi, poistaTehtava } =
-    use(TehtavaContext);
+    useContext(TehtavaContext);
 
   const kasittelePoisto = () => {
     poistaTehtava(poistoDialogi.tehtava.id);
@@ -662,13 +679,17 @@ Poistodialogi toimii samalla periaatteella kuin lisäysdialogi. Kontekstista poi
 
 `kasittelePoisto`-funktio kutsuu ensin `poistaTehtava`-metodia tehtävän `id`:llä ja sulkee sitten dialogin. Dialogin sulkemisessa käytetään spread-operaattoria (`...poistoDialogi`), jotta tehtävän tiedot säilyvät objektissa samalla kun `auki`-arvo muutetaan `false`:ksi. Sama spread-tekniikka on käytössä `onClose`-käsittelijässä ja "Peruuta"-painikkeessa.
 
-### Vaihe 12: Sovelluksen käynnistäminen ja testaaminen
+### Vaihe 11: Sovelluksen käynnistäminen ja testaaminen
+
+Sovellus on nyt valmis testattavaksi! Jos seurasit edellisiä vaiheita tarkkaan, sinulla pitäisi olla nyt käsissäsi toimiva sovellus, joka käyttää Reactin Context API:a tehtävälistan tehtävien käsittelyyn. Tehtävät haetaan erilliseltä palvelimelta, joka tallentaa ne pysyvästi palvelimella sijaitsevaan JSON-tiedostoon.
+
+Sinun on käynnistettävä sekä React-asiakassovelluksen kehityspalvelin, että palvelimen kehityspalvelin omissa komentokehotteissa. Voit avata VS Codessa kaksi terminaalia samanaikaisesti ja suorittaa niille alla olevat komennot. Pidä huoli, että olet avannut yhden terminaalin `server/`-kansiossa ja toisen `client/`-kansiossa (terminaalissa komentoa edeltävä polku).
 
 Käynnistetään ensin palvelin `server/`-kansiossa:
 
 ```bash
 cd server
-npm install
+npm install # Jos et ole vielä asentanut palvelimen node-paketteja
 npm run dev
 ```
 
@@ -714,31 +735,20 @@ demo08/
 
 | Osa | Funktio/Komponentti | Kuvaus |
 |-----|---------------------|--------|
-| Konteksti | `createContext<Tyyppi>(oletus)` | Luo kontekstiobjektin annetulla tyypillä |
+| Konteksti | `createContext(oletus)` | Luo kontekstiobjektin annetulla oletusarvolla |
 | Provider | `<Konteksti.Provider value={...}>` | Tarjoaa kontekstin arvon lapsikomponenteille |
-| Lukeminen | `use(Konteksti)` | Lukee kontekstin arvon (React 19) |
-| Lukeminen (vanha) | `useContext(Konteksti)` | Lukee kontekstin arvon (React 18 ja aiemmat) |
-
-### React 19:n uudistukset tässä demossa
-
-| Vanha tapa | Uusi tapa (React 19) | Selitys |
-|---|---|---|
-| `useContext(TehtavaContext)` | `use(TehtavaContext)` | Uusi hook kontekstin lukemiseen |
-| `React.FC<Props>` | `({ children }: Props) =>` | Tyypitys suoraan parametreissa |
-| `React.Context<any>` | `createContext<TehtavaContextType>(null!)` | Täsmällinen tyypitys `any`:n sijaan |
-| `uuid`-kirjasto | `crypto.randomUUID()` | Selaimen sisäänrakennettu metodi |
-| `import type` ei käytössä | `import type { Tehtava }` | Tyypit tuodaan erikseen |
+| Lukeminen | `useContext(Konteksti)` | Lukee kontekstin arvon lähimmästä Providerista |
 
 ### Kontekstin käyttö komponenteissa
 
 | Komponentti | Kontekstista poimitut ominaisuudet |
 |-------------|-----------------------------------|
-| `App.tsx` | `setLisaysDialogi` |
+| `App.tsx` | `setLisaysDialogi`, joka avaa `LisaaTehtava`-komponentin dialogin. |
 | `Tehtavalista.tsx` | `tehtavat`, `setPoistoDialogi`, `vaihdaSuoritus` |
 | `LisaaTehtava.tsx` | `lisaysDialogi`, `setLisaysDialogi`, `lisaaTehtava` |
 | `PoistaTehtava.tsx` | `poistoDialogi`, `setPoistoDialogi`, `poistaTehtava` |
 
-Jokainen komponentti poimii kontekstista destrukturoinnilla vain tarvitsemansa ominaisuudet.
+Jokainen komponentti poimii kontekstista destrukturoinnilla vain tarvitsemansa ominaisuudet. Eli vaikka kontekstiin määriteltiinkin liuta tilamuuttujia ja toimintoja, niin kontekstia käyttävät lapsikomponentit ottavat käyttöön vain tarvitut ominaisuudet.
 
 ### MUI-komponentit demossa
 
@@ -755,7 +765,7 @@ Jokainen komponentti poimii kontekstista destrukturoinnilla vain tarvitsemansa o
 
 ---
 
-## Sovelluksen käynnistys
+## Demon valmiin sovelluksen käynnistys
 
 **1. Asenna palvelimen riippuvuudet:**
 

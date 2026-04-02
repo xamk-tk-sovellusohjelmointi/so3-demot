@@ -1,5 +1,4 @@
-import { createContext, useEffect, useRef, useState } from "react";
-import type { ReactNode, Dispatch, SetStateAction } from "react";
+import React, { createContext, useEffect, useRef, useState } from "react";
 
 export interface Tehtava {
   id: string;
@@ -7,35 +6,18 @@ export interface Tehtava {
   suoritettu: boolean;
 }
 
-export interface PoistoDialogi {
-  tehtava: Tehtava;
-  auki: boolean;
-}
-
-export interface TehtavaContextType {
-  tehtavat: Tehtava[];
-  setTehtavat: Dispatch<SetStateAction<Tehtava[]>>;
-  lisaysDialogi: boolean;
-  setLisaysDialogi: Dispatch<SetStateAction<boolean>>;
-  poistoDialogi: PoistoDialogi;
-  setPoistoDialogi: Dispatch<SetStateAction<PoistoDialogi>>;
-  lisaaTehtava: (uusiTehtava: Tehtava) => void;
-  poistaTehtava: (id: string) => void;
-  vaihdaSuoritus: (id: string) => void;
-}
-
-export const TehtavaContext = createContext<TehtavaContextType>(null!);
+export const TehtavaContext: React.Context<any> = createContext(undefined);
 
 interface Props {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export const TehtavaProvider = ({ children }: Props) => {
   const haettu = useRef(false);
 
   const [lisaysDialogi, setLisaysDialogi] = useState<boolean>(false);
-  const [poistoDialogi, setPoistoDialogi] = useState<PoistoDialogi>({
-    tehtava: { id: "", nimi: "", suoritettu: false },
+  const [poistoDialogi, setPoistoDialogi] = useState<any>({
+    tehtava: {},
     auki: false,
   });
 
@@ -59,6 +41,7 @@ export const TehtavaProvider = ({ children }: Props) => {
     tallennaTehtavat(tehtavat.filter((tehtava) => tehtava.id !== id));
   };
 
+  // Kaikkien tehtävien lähettäminen palvelimelle POST-metodilla
   const tallennaTehtavat = async (tehtavat: Tehtava[]) => {
     await fetch("http://localhost:3008/api/tehtavalista", {
       method: "POST",
@@ -71,6 +54,7 @@ export const TehtavaProvider = ({ children }: Props) => {
     setTehtavat([...tehtavat]);
   };
 
+  // Kaikkien tehtävien hakeminen palvelimelta GET-metodilla
   const haeTehtavat = async () => {
     const yhteys = await fetch("http://localhost:3008/api/tehtavalista");
     const data = await yhteys.json();
