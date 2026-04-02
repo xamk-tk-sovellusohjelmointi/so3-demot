@@ -1,0 +1,18 @@
+# React-sovelluksen tilanhallinta
+
+Tässä demossa perehdytään React-sovelluksen tilanhallintaan koko sovelluksen tasolla. Aiemmissa demoissa tilanhallintaa on tehty yksittäisten komponenttien sisällä tilamuuttujien avulla. Tarvittaessa, jos jokin tilan tieto on pitänyt välittää toiselle komponentille, on käytetty komponenttien Props-ominaisuutta. Tämä toimii yksittäisissä tapauksissa, mutta sovellusten koon kasvaessa tästä tulee painajainen sovelluksen arkkitehtuurin kannalta ja johtaa ns. prop-drilling -käytäntöön, jossa propseja välitetään komponenteille vain sen takia, jotta ne voidaan välittää edelleen alemmalle tasolle. Tässä ei tietenkään ole mitään järkeä, että propseja välitetään komponenteille vain siksi, että ne voivat välittää propsin edelleen eteenpäin. Olisi paljon helpompaa, jos tarvittavaan tilan tietoon päästäisiin käsiksi suoraan sitä tarvitsevassa komponentissa.
+
+Tähän liittyy React-sovelluksen tilanhallinta globaalisti koko sovelluksen tasolla tai esimerkiksi rajattuna tiettyyn alaosaan sovelluksesta. Tätä varten onkin kehitetty erilaisia React-lisäosia, kuten Redux, jolla sovelluksen tilan tietoja voidaan välittää, mutta nykyään React sisältää jo ihan oletuksena oman rajapinnan tälle toiminnallisuudelle nimeltä React Context API.
+
+Tässä demossa harjoitellaan React Context APIn käyttöä ja sitä, miten laajemmissa sovelluksissa jokin tietty tieto esimerkiksi lomakkeesta voidaan välittää täysin toiseen osaan asiakassovellusta. Aiemmissa demoissa "ongelmana" on ollut, että App-komponentti sisältää suoraan eri tarkoituksiin kirjoitettuja koodeja sekaisin. Tässä demossa palataan vähän edellisen opintojakson 2 aiheisiin ja tehdään asiakas- ja palvelinsovelluksen yhdistäminen fullstack-sovellukseksi, jossa tehtävälistaan kirjatut tiedot tallennetaan backendin kautta palvelimen tietokantaan (tässä yksinkertainen json-tiedosto).
+
+Jos muistat edellisen toteutuksen Web Service ja REST API -teoriaa, ymmärrät, että tällaista sovellusta ei voida toteuttaa siten, että yksi reitti tai komponentti sisältää kaiken sovelluksen toiminnallisuuden. Tehtävälista-toiminnallisuus voi esimerkiksi olla vain yksi osa laajemman sovelluksen kokonaisuutta. Tällaisessa tilanteessa esimerkiksi palvelimen puolella jokainen ominaisuus saa oman rajapinnan Express Routen kautta (localhost:3000/api/ominaisuus). Tätä ajattelua on nyt otettu mukaan demon 9 toteutukseen asiakassovelluksen puolella. Palvelinkoodit tarjotaan "sellaisenaan", eikä niihin puututa, koska palvelinta tarvitaan vain kontekstin havainnollistusta varten.
+
+Asiakassovelluksessa eri toiminnallisuudet on nyt jaoteltu omiin komponentteihinsa, kuten hyvään ohjelmointikäytäntöön kuuluu, mutta ongelmaksi muodostuu se, että tietoja pitäisi voida välittää komponenttien välillä, joiden toiminnot olivat aiemmin kaikki osa App-komponenttia. Tässä nyt otetaan käyttöön aiemmin mainittu React-sovelluksen konteksti ja React Context API tilan tietojen välittämiseen komponenttien välillä. Enää ei tarvitse määrittää jokaiselle komponentille omia propseja, jotka pitää vielä tarjota aina komponenttia käytettäessä.
+
+Demo 8:ssä on toteutettu siis tehtävälista-sovellus, joka muistuttaa paljon ostoslista-sovellusta sovellusohjelmointi 2 -opintojakson demoista. Tämän opintojakson aiemmissa demoissa sovellukset on toteutettu App-komponentin tasolle, joka on ollut riittävä käytäntö laitekomponenttien harjoittelulle, mutta tässä palataan takaisin Web Service -tyylisten palvelinsovellusten ja React-asiakassovellusten yhteistoimintaan.
+
+## Sisällys
+
+### [React-sovelluksen ohjeistus](./client/README.md)
+### [Lyhyt ohjeistus palvelimesta](./server/README.md)
